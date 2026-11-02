@@ -1,1 +1,27 @@
 @import "tailwindcss";
+@plugin "daisyui";
+
+@theme {
+  --color-base: #0f1117;
+  --color-surface: #171a23;
+  --color-elevated: #1f2330;
+
+  --color-line: #2a2f3d;
+
+  --color-content: #e8eaf0;
+  --color-content-secondary: #a0a6b8;
+  --color-content-muted: #6b7186;
+
+  --color-success: #3ecf8e;
+  --color-warning: #f5b94a;
+  --color-danger: #f4617f;
+}
+
+.hide-scrollbar {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.hide-scrollbar::-webkit-scrollbar {
+  display: none;
+}

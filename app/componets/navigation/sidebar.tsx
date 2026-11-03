@@ -9,33 +9,36 @@ import {
   FiChevronDown,
   FiChevronRight,
   FiClock,
+  FiFileText,
   FiGrid,
   FiSettings,
   FiStar,
 } from "react-icons/fi";
 import type { IconType } from "react-icons";
-import WatchlistPanel from "./watchlist-panel";
+
+import WatchlistPanel from "../watchlist-panel";
 
 const navigationSections: {
   title: string;
   links: { name: string; href: string; icon: IconType }[];
 }[] = [
-  {
-    title: "Workspace",
-    links: [
-      { name: "Dashboard", href: "/", icon: FiGrid },
-      { name: "Markets", href: "/markets", icon: FiBarChart2 },
-    ],
-  },
-  {
-    title: "Your account",
-    links: [
-      { name: "Portfolio", href: "/portfolio", icon: FiBriefcase },
-      { name: "Watchlist", href: "/watchlist", icon: FiStar },
-      { name: "Orders & activity", href: "/orders", icon: FiClock },
-    ],
-  },
-];
+    {
+      title: "Workspace",
+      links: [
+        { name: "Dashboard", href: "/", icon: FiGrid },
+        { name: "Markets", href: "/markets", icon: FiBarChart2 },
+        { name: "News", href: "/news", icon: FiFileText },
+      ],
+    },
+    {
+      title: "Your account",
+      links: [
+        { name: "Portfolio", href: "/portfolio", icon: FiBriefcase },
+        { name: "Watchlist", href: "/watchlist", icon: FiStar },
+        { name: "Orders & activity", href: "/orders", icon: FiClock },
+      ],
+    },
+  ];
 
 export default function Sidebar() {
   const pathname = usePathname();
@@ -58,7 +61,7 @@ export default function Sidebar() {
                     : link.href === "/"
                       ? pathname === "/"
                       : pathname === link.href ||
-                        pathname.startsWith(`${link.href}/`);
+                      pathname.startsWith(`${link.href}/`);
                   const Icon = link.icon;
 
                   return (
@@ -70,11 +73,10 @@ export default function Sidebar() {
                           onClick={() =>
                             setIsWatchlistOpen((isOpen) => !isOpen)
                           }
-                          className={`flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm transition-colors ${
-                            active
+                          className={`flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm transition-colors ${active
                               ? "bg-elevated font-medium text-content"
                               : "text-content-secondary hover:bg-elevated/70 hover:text-content"
-                          }`}
+                            }`}
                         >
                           <Icon
                             className={
@@ -83,21 +85,18 @@ export default function Sidebar() {
                             size={18}
                           />
                           <span>{link.name}</span>
-                          {isWatchlistOpen ? (
-                            <FiChevronDown className="ml-auto" size={14} />
-                          ) : (
-                            <FiChevronRight className="ml-auto" size={14} />
-                          )}
+
+                          <FiChevronRight className={`ml-auto ${isWatchlistOpen ? "rotate-180" : ""} transition-transform duration-200`} size={14} />
+
                         </button>
                       ) : (
                         <Link
                           href={link.href}
                           aria-current={active ? "page" : undefined}
-                          className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition-colors ${
-                            active
+                          className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition-colors ${active
                               ? "bg-elevated font-medium text-content"
                               : "text-content-secondary hover:bg-elevated/70 hover:text-content"
-                          }`}
+                            }`}
                         >
                           <Icon
                             className={

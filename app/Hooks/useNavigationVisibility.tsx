@@ -2,14 +2,17 @@
 
 import { createContext, useContext, type Dispatch, type SetStateAction } from "react";
 
-export const NavigationVisibilityContext = createContext<
-  Dispatch<SetStateAction<boolean>> | null
->(null);
+type NavigationVisibilitySetter = Dispatch<SetStateAction<boolean>>;
 
-export default function useNavigationVisibility() {
+export const NavigationVisibilityContext =
+  createContext<NavigationVisibilitySetter | null>(null);
+
+NavigationVisibilityContext.displayName = "NavigationVisibilityContext";
+
+export default function useNavigationVisibility(): NavigationVisibilitySetter {
   const setNavigationVisible = useContext(NavigationVisibilityContext);
 
-  if (!setNavigationVisible) {
+  if (setNavigationVisible === null) {
     throw new Error("useNavigationVisibility must be used within NavigationShell");
   }
 

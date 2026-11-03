@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { finnhub } from "../../../lib/api";
+import { FinnhubApiError, finnhub } from "../../../lib/api";
 
 const QUOTE_REVALIDATE = 60; 
 const LOGO_REVALIDATE = 86400;
@@ -21,27 +21,68 @@ export async function GET(req: NextRequest) {
       .filter(Boolean),
   );
 
-  const results = await Promise.all(
+  const responses = await Promise.all(
     symbols.map(async (symbol) => {
+      let quote: Record<string, unknown>;
       try {
-        const [quote, profile] = await Promise.all([
-          finnhub("/quote", { symbol }, QUOTE_REVALIDATE),
-          logoSymbols.has(symbol) && !symbol.includes(":")
-            ? finnhub<{ logo?: string }>("/stock/profile2", { symbol }, LOGO_REVALIDATE).catch(
-                (error: unknown) => {
-                  console.error(`Failed to load company logo for ${symbol}:`, error);
-                  return null;
-                },
-              )
-            : Promise.resolve(null),
-        ]);
-        return { symbol, ...quote, logo: profile?.logo ?? null };
+        quote = await finnhub("/quote", { symbol }, QUOTE_REVALIDATE);
       } catch (error) {
+        if (error instanceof FinnhubApiError && error.status === 429) {
+          return {
+            result: { symbol, rateLimited: true },
+            retryAfter: error.retryAfter,
+          };
+        }
+
         console.error(`Failed to load quote for ${symbol}:`, error);
-        return { symbol, c: 0, d: 0, dp: 0, logo: null, error: "Quote unavailable" };
+        return {
+          result: {
+            symbol,
+            c: null,
+            d: null,
+            dp: null,
+            logo: null,
+            error: "Quote unavailable",
+          },
+          retryAfter: null,
+        };
       }
+
+      let profile: { logo?: string } | null = null;
+      if (logoSymbols.has(symbol) && !symbol.includes(":")) {
+        try {
+          profile = await finnhub<{ logo?: string }>(
+            "/stock/profile2",
+            { symbol },
+            LOGO_REVALIDATE,
+          );
+        } catch (error) {
+          if (error instanceof FinnhubApiError && error.status === 429) {
+            return {
+              result: { symbol, ...quote, logo: null, rateLimited: true },
+              retryAfter: error.retryAfter,
+            };
+          }
+          console.error(`Failed to load company logo for ${symbol}:`, error);
+        }
+      }
+
+      return {
+        result: { symbol, ...quote, logo: profile?.logo ?? null },
+        retryAfter: null,
+      };
     }),
   );
 
-  return NextResponse.json(results);
+  const results = responses.map((response) => response.result);
+  const retryAfter = responses.find(
+    (response) => response.retryAfter,
+  )?.retryAfter;
+  const rateLimited = results.some((result) => result.rateLimited === true);
+  return NextResponse.json(results, {
+    status: rateLimited ? 429 : 200,
+    headers: rateLimited
+      ? { "Retry-After": retryAfter ?? "60" }
+      : undefined,
+  });
 }

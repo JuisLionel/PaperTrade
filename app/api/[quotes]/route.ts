@@ -1,9 +1,18 @@
 import { NextRequest, NextResponse } from "next/server";
 import { FinnhubApiError, finnhub } from "../../../lib/api";
 
-const QUOTE_REVALIDATE = 60; 
+const QUOTE_REVALIDATE = 60;
 const LOGO_REVALIDATE = 86400;
 const MAX_SYMBOLS = 40;
+
+const unavailable = (symbol: string) => ({
+  symbol,
+  c: null,
+  d: null,
+  dp: null,
+  logo: null,
+  error: "Quote unavailable",
+});
 
 export async function GET(req: NextRequest) {
   const params = req.nextUrl.searchParams;
@@ -33,19 +42,11 @@ export async function GET(req: NextRequest) {
             retryAfter: error.retryAfter,
           };
         }
-
-        console.error(`Failed to load quote for ${symbol}:`, error);
-        return {
-          result: {
-            symbol,
-            c: null,
-            d: null,
-            dp: null,
-            logo: null,
-            error: "Quote unavailable",
-          },
-          retryAfter: null,
-        };
+        console.error(
+          `Failed to load ${symbol.includes(":") ? "crypto " : ""}quote for ${symbol}:`,
+          error,
+        );
+        return { result: unavailable(symbol), retryAfter: null };
       }
 
       let profile: { logo?: string } | null = null;
@@ -78,11 +79,11 @@ export async function GET(req: NextRequest) {
   const retryAfter = responses.find(
     (response) => response.retryAfter,
   )?.retryAfter;
-  const rateLimited = results.some((result) => result.rateLimited === true);
+  const rateLimited = results.some(
+    (result) => "rateLimited" in result && result.rateLimited === true,
+  );
   return NextResponse.json(results, {
     status: rateLimited ? 429 : 200,
-    headers: rateLimited
-      ? { "Retry-After": retryAfter ?? "60" }
-      : undefined,
+    headers: rateLimited ? { "Retry-After": retryAfter ?? "60" } : undefined,
   });
 }

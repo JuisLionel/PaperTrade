@@ -8,7 +8,8 @@ export type Quote = {
   h: number | null;
   l: number | null;
   o: number | null;
-  pc: number | null;
+  pc?: number | null;
+  t?: number | null;
   logo?: string | null;
   error?: string;
   rateLimited?: boolean;
@@ -37,8 +38,29 @@ async function fetchAssets(url: string, operation: string, signal?: AbortSignal)
   return response.json() as Promise<Asset[]>;
 }
 
-export function getMarketSymbols() {
-  return fetchAssets("/api/markets/symbols", "Could not load symbols");
+/** Every US symbol Finnhub has (S&P 500 first). */
+export function getMarketSymbols(signal?: AbortSignal) {
+  return fetchAssets(
+    "/api/markets/symbols?v=2",
+    "Could not load symbols",
+    signal,
+  );
+}
+
+export function getSp500Symbols(signal?: AbortSignal) {
+  return fetchAssets(
+    "/api/markets/symbols?kind=sp500&v=2",
+    "Could not load S&P 500 symbols",
+    signal,
+  );
+}
+
+export function getCryptoSymbols(signal?: AbortSignal) {
+  return fetchAssets(
+    "/api/markets/symbols?kind=crypto&v=2",
+    "Could not load crypto symbols",
+    signal,
+  );
 }
 
 export function searchMarketSymbols(query: string, signal?: AbortSignal) {

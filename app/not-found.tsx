@@ -16,7 +16,7 @@ export default function NotFound() {
   return (
     <div className="flex min-h-screen w-full items-center justify-center">
       <h1>Page Not Found</h1>
-      <Link href="/" className="ml-4 text-blue-500 hover:underline">
+      <Link href="/" className="btn btn-link ml-4">
         Go to Home
       </Link>
     </div>

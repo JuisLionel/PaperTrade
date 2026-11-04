@@ -6,7 +6,6 @@ import { usePathname } from "next/navigation";
 import {
   FiBarChart2,
   FiBriefcase,
-  FiChevronDown,
   FiChevronRight,
   FiClock,
   FiFileText,
@@ -46,14 +45,14 @@ export default function Sidebar() {
 
   return (
     <div className="relative z-30 flex min-h-screen shrink-0">
-      <aside className="flex min-h-screen w-54 shrink-0 flex-col border-r border-line bg-base px-2 py-6">
+      <aside className="flex min-h-screen w-64 shrink-0 flex-col border-r border-border bg-base px-2 py-6">
         <nav aria-label="Main navigation" className="flex-1 space-y-7">
           {navigationSections.map((section) => (
             <section key={section.title}>
               <h2 className="mb-2 px-3 text-[10px] font-semibold uppercase tracking-[0.16em] text-content-muted">
                 {section.title}
               </h2>
-              <ul className="space-y-1">
+              <ul className="menu menu-md w-full gap-2 p-0">
                 {section.links.map((link) => {
                   const isWatchlistLink = link.name === "Watchlist";
                   const active = isWatchlistLink
@@ -73,36 +72,36 @@ export default function Sidebar() {
                           onClick={() =>
                             setIsWatchlistOpen((isOpen) => !isOpen)
                           }
-                          className={`flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm transition-colors ${active
+                          className={`w-full justify-start gap-3 text-left text-base ${active
                               ? "bg-elevated font-medium text-content"
-                              : "text-content-secondary hover:bg-elevated/70 hover:text-content"
+                              : "text-content-muted hover:bg-elevated/70 hover:text-content"
                             }`}
                         >
                           <Icon
                             className={
-                              active ? "text-content" : "text-content-muted"
+                              active ? "text-content" : "text-content-muted hover:text-content"
                             }
-                            size={18}
+                            size={20}
                           />
                           <span>{link.name}</span>
 
-                          <FiChevronRight className={`ml-auto ${isWatchlistOpen ? "rotate-180" : ""} transition-transform duration-200`} size={14} />
+                          <FiChevronRight className={`ml-auto ${isWatchlistOpen ? "rotate-180" : ""} transition-transform duration-200`} size={16} />
 
                         </button>
                       ) : (
                         <Link
                           href={link.href}
                           aria-current={active ? "page" : undefined}
-                          className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition-colors ${active
+                          className={`w-full justify-start gap-3 text-left text-base ${active
                               ? "bg-elevated font-medium text-content"
-                              : "text-content-secondary hover:bg-elevated/70 hover:text-content"
+                              : "text-content-muted hover:bg-elevated/70 hover:text-content"
                             }`}
                         >
                           <Icon
                             className={
-                              active ? "text-content" : "text-content-muted"
+                              active ? "text-content" : "text-content-muted hover:text-content"
                             }
-                            size={18}
+                            size={20}
                           />
                           <span>{link.name}</span>
                         </Link>
@@ -115,12 +114,12 @@ export default function Sidebar() {
           ))}
         </nav>
 
-        <div className="space-y-1 border-t border-line pt-4">
+        <div className="space-y-1 border-t border-border pt-4">
           <Link
             href="/settings"
-            className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-content-secondary transition-colors hover:bg-elevated/70 hover:text-content"
+            className="btn btn-ghost h-auto min-h-0 w-full justify-start gap-3 px-3 py-3 text-left text-base text-content-secondary hover:bg-elevated/70 hover:text-content"
           >
-            <FiSettings size={18} className="text-content-muted" />
+            <FiSettings size={20} className="text-content-muted" />
             Settings
           </Link>
         </div>

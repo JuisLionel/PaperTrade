@@ -83,7 +83,7 @@ export default function Navbar() {
 
         <ul
           tabIndex={-1}
-          className="dropdown-content menu menu-sm z-30 mt-5 w-56 border border-border bg-base p-2 shadow-2xl"
+          className="dropdown-content menu menu-sm z-30 mt-5 w-56 border border-border rounded-[10px] bg-base p-2 shadow-2xl"
         >
           {accountLinks.map(({ name, href, icon: Icon }) => (
             <li key={href}>

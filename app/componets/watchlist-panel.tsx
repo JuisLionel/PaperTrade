@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { FiChevronDown, FiSearch, FiX } from "react-icons/fi";
+import { FiChevronDown, FiSearch } from "react-icons/fi";
 import { BsFillPinAngleFill } from "react-icons/bs";
 import useEscapeFocus from "../Hooks/useEscapeFocus";
 import {
@@ -27,6 +27,7 @@ import {
 const PAGE_SIZE = 10;
 const QUOTE_BATCH_SIZE = 5;
 const BATCH_DELAY_MS = 300;
+const MOVERS_SCAN_SIZE = 50;
 
 const displaySymbol = (symbol: string) =>
   symbol.includes(":") ? symbol.split(":")[1].replace("USDT", "") : symbol;
@@ -211,14 +212,10 @@ function Stat({
 
 export default function WatchlistPanel({
   isOpen,
-  onClose,
 }: {
   isOpen: boolean;
-  onClose: () => void;
 }) {
   const tabsRef = useRef<HTMLDivElement>(null);
-  const dragRef = useRef({ startX: 0, startScroll: 0, moved: false });
-  const [tabsDragging, setTabsDragging] = useState(false);
   const searchRef = useRef<HTMLInputElement>(null);
   useEscapeFocus(searchRef);
   const [assets, setAssets] = useState<Asset[]>([]);
@@ -235,6 +232,7 @@ export default function WatchlistPanel({
   const [searchLoading, setSearchLoading] = useState(false);
   const [searchError, setSearchError] = useState<string | null>(null);
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
+  const [moversScanCount, setMoversScanCount] = useState(0);
   const [quotesLoading, setQuotesLoading] = useState(false);
   const [loadingSymbols, setLoadingSymbols] = useState(new Set<string>());
   const [quotesError, setQuotesError] = useState<string | null>(null);
@@ -304,7 +302,15 @@ export default function WatchlistPanel({
 
   // S&P 500: loaded the first time its tab opens
   useEffect(() => {
-    if (!isOpen || category !== SP500_CATEGORY || sp500Requested.current) return;
+    if (
+      !isOpen ||
+      (category !== SP500_CATEGORY &&
+        category !== GAINERS_CATEGORY &&
+        category !== LOSERS_CATEGORY) ||
+      sp500Requested.current
+    ) {
+      return;
+    }
     sp500Requested.current = true;
 
     getSp500Symbols()
@@ -321,6 +327,118 @@ export default function WatchlistPanel({
         );
       });
   }, [isOpen, category]);
+
+  useEffect(() => {
+    if (
+      !isOpen ||
+      (category !== GAINERS_CATEGORY && category !== LOSERS_CATEGORY) ||
+      !sp500Assets.length ||
+      moversScanCount === 0 ||
+      rateLimitSeconds > 0
+    ) {
+      return;
+    }
+
+    const requestedQuotes = quotesRequested.current;
+    const scanSymbols = sp500Assets
+      .slice(0, moversScanCount)
+      .map((asset) => asset.symbol);
+    const wanted = scanSymbols.filter(
+      (symbol) => !requestedQuotes.has(symbol),
+    );
+    if (!wanted.length) return;
+
+    const controller = new AbortController();
+    const settled = new Set<string>();
+    let active = true;
+
+    const loadMoverQuotes = async () => {
+      setQuotesLoading(true);
+      setQuotesError(null);
+      setLoadingSymbols((current) => new Set([...current, ...wanted]));
+
+      try {
+        for (let index = 0; index < wanted.length; index += QUOTE_BATCH_SIZE) {
+          if (index > 0) {
+            await new Promise<void>((resolve) => {
+              setTimeout(resolve, BATCH_DELAY_MS);
+            });
+          }
+          if (controller.signal.aborted) return;
+
+          const batch = wanted.slice(index, index + QUOTE_BATCH_SIZE);
+          batch.forEach((symbol) => requestedQuotes.add(symbol));
+          const { quotes: data, status, retryAfter } = await getMarketQuotes(
+            batch,
+            [],
+            controller.signal,
+          );
+          const limited = data.filter((quote) => quote.rateLimited);
+
+          setQuotes((current) => {
+            const next = { ...current };
+            data.forEach((quote) => {
+              if (!quote.rateLimited) next[quote.symbol] = quote;
+            });
+            return next;
+          });
+          batch.forEach((symbol) => {
+            if (!limited.some((quote) => quote.symbol === symbol)) {
+              settled.add(symbol);
+            }
+          });
+          setLoadingSymbols((current) => {
+            const next = new Set(current);
+            batch.forEach((symbol) => next.delete(symbol));
+            return next;
+          });
+
+          if (limited.length || status === 429) {
+            limited.forEach((quote) =>
+              requestedQuotes.delete(quote.symbol),
+            );
+            setRateLimitSeconds(getRateLimitSeconds(retryAfter));
+            return;
+          }
+        }
+      } catch (error) {
+        if (controller.signal.aborted) return;
+        wanted
+          .filter((symbol) => !settled.has(symbol))
+          .forEach((symbol) => requestedQuotes.delete(symbol));
+        setQuotesError(
+          error instanceof Error ? error.message : "Could not load market quotes.",
+        );
+      } finally {
+        if (active) {
+          setQuotesLoading(false);
+          setLoadingSymbols((current) => {
+            const next = new Set(current);
+            wanted
+              .filter((symbol) => !settled.has(symbol))
+              .forEach((symbol) => next.delete(symbol));
+            return next;
+          });
+        }
+      }
+    };
+
+    void loadMoverQuotes();
+
+    return () => {
+      active = false;
+      controller.abort();
+      wanted
+        .filter((symbol) => !settled.has(symbol))
+        .forEach((symbol) => requestedQuotes.delete(symbol));
+    };
+  }, [
+    category,
+    isOpen,
+    moversScanCount,
+    rateLimitSeconds,
+    sp500Assets,
+  ]);
 
   useEffect(() => {
     if (
@@ -730,14 +848,6 @@ export default function WatchlistPanel({
           {/* Header */}
           <div className="flex h-14 shrink-0 items-center justify-between px-4">
             <h2 className="text-sm font-semibold text-content">US markets</h2>
-            <button
-              type="button"
-              aria-label="Close watchlist"
-              onClick={onClose}
-              className="btn btn-ghost btn-sm btn-square bg-surface hover:bg-"
-            >
-              <FiX size={17} />
-            </button>
           </div>
 
           {/* Search */}
@@ -779,45 +889,10 @@ export default function WatchlistPanel({
             ref={tabsRef}
             role="tablist"
             aria-label="Watchlist categories"
-            onPointerDown={(event) => {
-              if (event.pointerType !== "mouse") return;
-              const el = tabsRef.current;
-              if (!el) return;
-              dragRef.current = {
-                startX: event.clientX,
-                startScroll: el.scrollLeft,
-                moved: false,
-              };
-            }}
-            onPointerMove={(event) => {
-              if (event.pointerType !== "mouse" || event.buttons !== 1) return;
-              const el = tabsRef.current;
-              if (!el) return;
-              const dx = event.clientX - dragRef.current.startX;
-              if (Math.abs(dx) > 5 && !dragRef.current.moved) {
-                dragRef.current.moved = true;
-                setTabsDragging(true);
-              }
-              if (dragRef.current.moved) {
-                el.scrollLeft = dragRef.current.startScroll - dx;
-              }
-            }}
-            onPointerUp={() => setTabsDragging(false)}
-            onPointerLeave={() => setTabsDragging(false)}
-            onClickCapture={(event) => {
-              if (dragRef.current.moved) {
-                event.preventDefault();
-                event.stopPropagation();
-                dragRef.current.moved = false;
-              }
-            }}
-            className={`hide-scrollbar carousel carousel-center w-full shrink-0 select-none gap-0 px-2 py-1 ${tabsDragging
-              ? "snap-none cursor-grabbing"
-              : "cursor-grab"
-              }`}
+            className="hide-scrollbar flex w-full shrink-0 gap-0 overflow-x-auto px-2 py-1"
           >
             {categoryTabs.map((tab) => (
-              <div key={tab.id} className="carousel-item basis-1/5 min-w-0 px-1">
+              <div key={tab.id} className="shrink-0 basis-1/5 min-w-0 px-1">
                 <button
                   type="button"
                   role="tab"
@@ -826,7 +901,10 @@ export default function WatchlistPanel({
                   onClick={(event) => {
                     setCategory(tab.id);
                     setCryptoCategory(ALL_CRYPTO);
-                    setVisibleCount(PAGE_SIZE);
+                    const isMoverTab =
+                      tab.id === GAINERS_CATEGORY || tab.id === LOSERS_CATEGORY;
+                    setVisibleCount(isMoverTab ? MOVERS_SCAN_SIZE : PAGE_SIZE);
+                    if (isMoverTab) setMoversScanCount(MOVERS_SCAN_SIZE);
                     if (tab.id === CRYPTO_CATEGORY && cryptoAssets.length) {
                       setSelectedSymbol(cryptoAssets[0].symbol);
                       setSelectedAsset(cryptoAssets[0]);
@@ -1021,15 +1099,30 @@ export default function WatchlistPanel({
               </div>
             )}
 
-            {visibleCount < filteredAssets.length && (
+            {(visibleCount < filteredAssets.length ||
+              ((category === GAINERS_CATEGORY ||
+                category === LOSERS_CATEGORY) &&
+                moversScanCount < sp500Assets.length)) && (
               <button
                 type="button"
-                onClick={() => setVisibleCount((count) => count + PAGE_SIZE)}
+                disabled={quotesLoading}
+                onClick={() => {
+                  if (visibleCount < filteredAssets.length) {
+                    setVisibleCount((count) => count + PAGE_SIZE);
+                    return;
+                  }
+                  setMoversScanCount((count) =>
+                    Math.min(count + MOVERS_SCAN_SIZE, sp500Assets.length),
+                  );
+                  setVisibleCount((count) => count + MOVERS_SCAN_SIZE);
+                }}
                 className="btn btn-ghost btn-sm btn-block rounded-none text-xs font-normal text-content-secondary"
               >
-                Show more (
-                {(filteredAssets.length - visibleCount).toLocaleString()}{" "}
-                remaining)
+                {visibleCount < filteredAssets.length
+                  ? `Show more (${(
+                      filteredAssets.length - visibleCount
+                    ).toLocaleString()} remaining)`
+                  : "Load more market movers"}
               </button>
             )}
 
@@ -1203,11 +1296,11 @@ export default function WatchlistPanel({
               </>
             )}
           </div>
-          <div className="flex items-center justify-between border-t border-border px-2 py-2 text-xl font-bold text-content-muted">
-            <button type="button" className="btn w-49 bg-success hover:bg-success/80">
+          <div className="flex items-center justify-between border-t border-border px-2 py-2 text-xl font-bold">
+            <button type="button" className="btn w-49 bg-success hover:bg-success/80 text-white">
               Buy
             </button>
-            <button type="button" className="btn w-49 bg-danger hover:bg-danger/80">
+            <button type="button" className="btn w-49 bg-danger hover:bg-danger/80 text-white">
               Sell
             </button>
           </div>

@@ -6,17 +6,24 @@
   --color-surface: #1a1a1a;
   --color-elevated: #262626;
 
+  --color-opposite: #ffffff;
+
   --color-border: #1a1a1a;
   --color-line: var(--color-border);
 
-  --color-content: #b5da26;
-  --color-content-secondary: #6b7186;
-  --color-content-muted: #6b7186;
+  --color-content: #b8e62e;
+  --color-content-secondary: #a3a3a3;
+  --color-content-muted: #858585;
 
   --color-success: #3ecf8e;
   --color-warning: #f5b94a;
   --color-danger: #f4617f;
   --color-info: #8c8cd9;
+
+  --text-ui-sm: 13px;
+  --text-ui-base: 14px;
+  --text-ui-lg: 16px;
+  --text-ui-xl: 20px;
 }
 
 @layer base {
@@ -64,14 +71,19 @@ html[data-theme="light"] {
   --color-base: #f5f6f8;
   --color-surface: #ffffff;
   --color-elevated: #e8ebf0;
-  --color-border: #cbd2dc;
+  --color-border: #e0e3e8;
   --color-content: #536b00;
-  --color-content-secondary: #4b5563;
-  --color-content-muted: #667085;
+  --color-content-secondary: #525252;
+  --color-content-muted: #737373;
   --color-success: #167347;
   --color-warning: #946000;
   --color-danger: #c7374f;
   --color-info: #5555b7;
+  --color-opposite: #000000;
+}
+
+html .papertrade-logo {
+  color: var(--color-opposite);
 }
 
 .hide-scrollbar {
@@ -89,8 +101,10 @@ img, a, .no-drag {
 }
 
 body {
-  -webkit-user-select: none; 
-  -moz-user-select: none; 
-  -ms-user-select: none;    
-  user-select: none;         
+  color: var(--color-content-secondary);
+  background-color: var(--color-base);
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
 }

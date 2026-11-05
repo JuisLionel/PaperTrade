@@ -59,8 +59,25 @@ export function getSp500Symbols(signal?: AbortSignal) {
 }
 
 export async function getSp500IndexQuote(signal?: AbortSignal): Promise<Quote> {
+  return getMarketIndexQuote("sp500", signal);
+}
+
+export async function getMarketIndexQuote(
+  index: "sp500" | "btc" | "dow",
+  signal?: AbortSignal,
+): Promise<Quote> {
+  const indexNames = {
+    sp500: "S&P 500",
+    btc: "BTC",
+    dow: "Dow",
+  } as const;
+  const indexSymbols = {
+    sp500: "^GSPC",
+    btc: "BINANCE:BTCUSDT",
+    dow: "^DJI",
+  } as const;
   const response = await fetch(
-    "/api/markets/index",
+    `/api/markets/index?index=${index}`,
     signal ? { signal } : undefined,
   );
   const result = (await response.json()) as {
@@ -75,15 +92,18 @@ export async function getSp500IndexQuote(signal?: AbortSignal): Promise<Quote> {
     throw new Error(
       typeof result.error === "string"
         ? result.error
-        : `Could not load the S&P 500 index quote (${response.status}).`,
+        : `Could not load the ${indexNames[index]} index quote (${response.status}).`,
     );
   }
   if (typeof result.c !== "number" || !Number.isFinite(result.c)) {
-    throw new Error("S&P 500 quote response is invalid.");
+    throw new Error(`${indexNames[index]} quote response is invalid.`);
   }
 
   return {
-    symbol: typeof result.symbol === "string" ? result.symbol : "^GSPC",
+    symbol:
+      typeof result.symbol === "string"
+        ? result.symbol
+        : indexSymbols[index],
     c: result.c,
     d: typeof result.d === "number" ? result.d : null,
     dp: typeof result.dp === "number" ? result.dp : null,

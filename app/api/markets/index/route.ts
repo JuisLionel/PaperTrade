@@ -1,12 +1,27 @@
 import { NextResponse } from "next/server";
+import {
+  apiError,
+  FinnhubApiError,
+  finnhub,
+} from "../../../../lib/api";
 
-const SP500_QUOTE_URL =
-  "https://query1.finance.yahoo.com/v8/finance/chart/%5EGSPC?range=1d&interval=1m";
+const MARKET_INDICES = {
+  sp500: { symbol: "^GSPC", name: "S&P 500", provider: "yahoo" },
+  btc: { symbol: "BINANCE:BTCUSDT", name: "BTC", provider: "finnhub" },
+  dow: { symbol: "^DJI", name: "Dow", provider: "yahoo" },
+} as const;
+
+type MarketIndex = keyof typeof MARKET_INDICES;
+
+type FinnhubQuote = {
+  c?: unknown;
+  d?: unknown;
+  dp?: unknown;
+  t?: unknown;
+};
 
 type YahooIndexMeta = {
   symbol?: unknown;
-  longName?: unknown;
-  shortName?: unknown;
   regularMarketPrice?: unknown;
   regularMarketChangePercent?: unknown;
   regularMarketTime?: unknown;
@@ -20,62 +35,82 @@ type YahooChartResponse = {
   };
 };
 
-export async function GET() {
+const finiteNumber = (value: unknown) => {
+  const parsed =
+    typeof value === "number"
+      ? value
+      : typeof value === "string"
+        ? Number(value)
+        : Number.NaN;
+  return Number.isFinite(parsed) ? parsed : null;
+};
+
+export async function GET(request: Request) {
+  const indexKey = new URL(request.url).searchParams.get("index") ?? "sp500";
+  if (!Object.hasOwn(MARKET_INDICES, indexKey)) {
+    return NextResponse.json({ error: "Unknown market index." }, { status: 400 });
+  }
+  const index = MARKET_INDICES[indexKey as MarketIndex];
+
   try {
-    const response = await fetch(SP500_QUOTE_URL, {
-      next: { revalidate: 60 },
-    });
-    if (!response.ok) {
-      throw new Error(`S&P 500 data source returned ${response.status}.`);
-    }
+    let price: number | null;
+    let change: number | null;
+    let changePercent: number | null;
+    let timestamp: number | null;
+    let symbol: string = index.symbol;
 
-    const body = (await response.json()) as YahooChartResponse;
-    const meta = body.chart?.result?.[0]?.meta;
-    if (!meta) {
-      throw new Error(
-        body.chart?.error?.description ?? "S&P 500 price is unavailable.",
+    if (index.provider === "finnhub") {
+      const quote = await finnhub<FinnhubQuote>(
+        "/quote",
+        { symbol: index.symbol },
+        60,
       );
+      price = finiteNumber(quote.c);
+      change = finiteNumber(quote.d);
+      changePercent = finiteNumber(quote.dp);
+      timestamp = finiteNumber(quote.t);
+    } else {
+      const response = await fetch(
+        `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(index.symbol)}?range=1d&interval=1m`,
+        { next: { revalidate: 60 } },
+      );
+      if (!response.ok) {
+        throw new Error(`${index.name} data source returned ${response.status}.`);
+      }
+
+      const body = (await response.json()) as YahooChartResponse;
+      const meta = body.chart?.result?.[0]?.meta;
+      if (!meta) {
+        throw new Error(
+          body.chart?.error?.description ?? `${index.name} price is unavailable.`,
+        );
+      }
+
+      price = finiteNumber(meta.regularMarketPrice);
+      const previousClose = finiteNumber(meta.chartPreviousClose);
+      change =
+        price !== null && previousClose !== null ? price - previousClose : null;
+      changePercent = finiteNumber(meta.regularMarketChangePercent);
+      timestamp = finiteNumber(meta.regularMarketTime);
+      if (typeof meta.symbol === "string") symbol = meta.symbol;
     }
 
-    const price = meta?.regularMarketPrice;
-    if (typeof price !== "number" || !Number.isFinite(price)) {
-      throw new Error("S&P 500 price is unavailable.");
-    }
-
-    const previousClose = meta.chartPreviousClose;
-    const change =
-      typeof previousClose === "number" && Number.isFinite(previousClose)
-        ? price - previousClose
-        : null;
-    const reportedChangePercent = meta.regularMarketChangePercent;
-    const changePercent =
-      typeof reportedChangePercent === "number" &&
-      Number.isFinite(reportedChangePercent)
-        ? reportedChangePercent
-        : change !== null && typeof previousClose === "number" && previousClose !== 0
-          ? (change / previousClose) * 100
-          : null;
+    if (price === null) throw new Error(`${index.name} price is unavailable.`);
 
     return NextResponse.json({
-      symbol: typeof meta.symbol === "string" ? meta.symbol : "^GSPC",
-      name:
-        typeof meta.shortName === "string"
-          ? meta.shortName
-          : typeof meta.longName === "string"
-            ? meta.longName
-            : "S&P 500",
+      key: indexKey,
+      symbol,
+      name: index.name,
       c: price,
       d: change,
       dp: changePercent,
-      t:
-        typeof meta.regularMarketTime === "number"
-          ? meta.regularMarketTime
-          : undefined,
+      t: timestamp ?? undefined,
     });
   } catch (error) {
-    console.error("Failed to load the S&P 500 index quote:", error);
+    console.error(`Failed to load the ${index.name} index quote:`, error);
+    if (error instanceof FinnhubApiError) return apiError(error);
     return NextResponse.json(
-      { error: "Could not load the S&P 500 index quote." },
+      { error: `Could not load the ${index.name} index quote.` },
       { status: 502 },
     );
   }

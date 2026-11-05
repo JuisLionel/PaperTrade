@@ -19,6 +19,42 @@
   --color-info: #8c8cd9;
 }
 
+@layer base {
+  :where(
+    a,
+    button,
+    input,
+    select,
+    textarea,
+    summary,
+    [role="button"],
+    [role="menuitem"],
+    [role="menuitemradio"]
+  ) {
+    transition-property:
+      color, background-color, border-color, opacity, box-shadow, transform,
+      fill, stroke;
+    transition-duration: 150ms;
+    transition-timing-function: ease-in-out;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    :where(
+      a,
+      button,
+      input,
+      select,
+      textarea,
+      summary,
+      [role="button"],
+      [role="menuitem"],
+      [role="menuitemradio"]
+    ) {
+      transition-duration: 0.01ms;
+    }
+  }
+}
+
 html {
   color-scheme: dark;
 }
@@ -45,4 +81,16 @@ html[data-theme="light"] {
 
 .hide-scrollbar::-webkit-scrollbar {
   display: none;
+}
+
+img, a, .no-drag {
+  -webkit-user-drag: none;
+  user-drag: none;
+}
+
+body {
+  -webkit-user-select: none; 
+  -moz-user-select: none; 
+  -ms-user-select: none;    
+  user-select: none;         
 }

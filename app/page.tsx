@@ -7,8 +7,8 @@ export const metadata: Metadata = {
 
 export default function Home() {
   return (
-    <main className="min-h-0 flex-1 bg-base p-6">
-
+    <main className="h-1000 flex-1 bg-base p-6">
+      <h1>HELLO, WORLD!</h1>
     </main>
   );
 }

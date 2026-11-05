@@ -13,7 +13,7 @@ export default function NavigationShell({ children }: { children: ReactNode }) {
       <div className="flex min-h-screen">
         {navigationVisible && (
           <Suspense
-            fallback={<aside aria-hidden="true" className="min-h-screen w-64 shrink-0 border-r border-border bg-base" />}
+            fallback={<aside aria-hidden="true" className="h-screen w-64 shrink-0 border-r border-border bg-base" />}
           >
             <Sidebar />
           </Suspense>

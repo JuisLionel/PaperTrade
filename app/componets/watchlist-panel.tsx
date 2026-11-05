@@ -714,19 +714,7 @@ export default function WatchlistPanel({
     };
   }, [selectedQuote]);
 
-  const emptyMessage = query.trim()
-    ? `No symbols match “${query}”.`
-    : category === PINNED_CATEGORY
-      ? "No pinned symbols yet. Use the pin icon on any row to add one."
-      : category === GAINERS_CATEGORY || category === LOSERS_CATEGORY
-        ? `No ${category} among the loaded quotes yet. Browse the All tab to load more.`
-        : category === SP500_CATEGORY
-          ? "S&P 500 symbols are still loading."
-          : category === CRYPTO_CATEGORY
-            ? cryptoCategory === ALL_CRYPTO
-              ? "No crypto symbols yet. Search for a cryptocurrency to find it."
-              : "No coins in this crypto category."
-            : "No symbols in this category.";
+  const emptyMessage = `We couldn't find anything matching “${query}”.`
 
   return (
     <div className="pointer-events-none absolute left-full top-0 z-30 h-screen w-104 max-w-[calc(100vw-13.5rem)] overflow-hidden">
@@ -746,7 +734,7 @@ export default function WatchlistPanel({
               type="button"
               aria-label="Close watchlist"
               onClick={onClose}
-              className="btn btn-ghost btn-sm btn-square"
+              className="btn btn-ghost btn-sm btn-square bg-surface hover:bg-"
             >
               <FiX size={17} />
             </button>
@@ -829,7 +817,7 @@ export default function WatchlistPanel({
               }`}
           >
             {categoryTabs.map((tab) => (
-              <div key={tab.id} className="carousel-item basis-1/5 min-w-0">
+              <div key={tab.id} className="carousel-item basis-1/5 min-w-0 px-1">
                 <button
                   type="button"
                   role="tab"
@@ -849,7 +837,7 @@ export default function WatchlistPanel({
                       block: "nearest",
                     });
                   }}
-                  className={`w-full min-w-0 overflow-hidden text-ellipsis whitespace-nowrap rounded-md px-1 py-1.5 text-center text-xs font-normal ${category === tab.id
+                  className={`w-full min-w-0 overflow-hidden text-ellipsis whitespace-nowrap rounded-md px-1 py-1.5 text-center text-xs font-normal transition-colors duration-200 ease-out ${category === tab.id
                     ? "bg-elevated text-content"
                     : "text-content-muted hover:bg-elevated hover:text-content"
                     }`}
@@ -860,42 +848,44 @@ export default function WatchlistPanel({
             ))}
           </div>
 
-          {/* Crypto category dropdown */}
           {category === CRYPTO_CATEGORY && (
-            <details className="dropdown dropdown-start relative z-20 shrink-0 px-2 py-1">
-              <summary className="flex h-8 min-w-24 cursor-pointer list-none items-center justify-between gap-2 rounded-md bg-elevated px-3 text-xs text-content">
-                {cryptoCategory === ALL_CRYPTO
-                  ? "All crypto"
-                  : CRYPTO_CATEGORIES.find((item) => item.id === cryptoCategory)
+            <div className="relative z-20 shrink-0 px-2 py-1 w-full">
+              <details className="dropdown relative block w-full">
+                <summary className="flex h-8 w-full cursor-pointer list-none items-center justify-between gap-2 rounded-md bg-elevated px-3 text-xs text-content">
+                  {cryptoCategory === ALL_CRYPTO
+                    ? "All crypto"
+                    : CRYPTO_CATEGORIES.find((item) => item.id === cryptoCategory)
                       ?.label ?? "All crypto"}
-                <FiChevronDown size={14} />
-              </summary>
-              <ul className="dropdown-content menu menu-sm mt-1 w-52 rounded-md border border-border bg-base p-1 shadow-none">
-                {[{ id: ALL_CRYPTO, label: "All crypto" }, ...CRYPTO_CATEGORIES].map(
-                  (item) => (
-                    <li key={item.id}>
-                      <button
-                        type="button"
-                        role="menuitemradio"
-                        aria-checked={cryptoCategory === item.id}
-                        className={cryptoCategory === item.id
-                          ? "!bg-elevated !text-content"
-                          : "text-content-secondary hover:!bg-elevated hover:!text-content"}
-                        onClick={(event) => {
-                          setCryptoCategory(item.id);
-                          setVisibleCount(PAGE_SIZE);
-                          event.currentTarget
-                            .closest("details")
-                            ?.removeAttribute("open");
-                        }}
-                      >
-                        {item.label}
-                      </button>
-                    </li>
-                  ),
-                )}
-              </ul>
-            </details>
+                  <FiChevronDown size={14} />
+                </summary>
+                <ul className="dropdown-content menu menu-sm absolute left-0 top-full mt-1 w-full gap-y-1 rounded-md border border-border bg-base p-1 shadow-none">
+                  {[{ id: ALL_CRYPTO, label: "All crypto" }, ...CRYPTO_CATEGORIES].map(
+                    (item) => (
+                      <li key={item.id}>
+                        <button
+                          type="button"
+                          role="menuitemradio"
+                          aria-checked={cryptoCategory === item.id}
+                          className={`${cryptoCategory === item.id ?
+                            "bg-elevated! text-content!" :
+                            "text-content-secondary hover:bg-elevated! hover:text-content!"
+                            }`}
+                          onClick={(event) => {
+                            setCryptoCategory(item.id);
+                            setVisibleCount(PAGE_SIZE);
+                            event.currentTarget
+                              .closest("details")
+                              ?.removeAttribute("open");
+                          }}
+                        >
+                          {item.label}
+                        </button>
+                      </li>
+                    ),
+                  )}
+                </ul>
+              </details>
+            </div>
           )}
 
           {/* Column headers */}
@@ -1175,14 +1165,6 @@ export default function WatchlistPanel({
                         value={formatPrice(selectedQuote.pc)}
                       />
                       <Stat
-                        title="Day high"
-                        value={formatPrice(selectedQuote.h)}
-                      />
-                      <Stat
-                        title="Day low"
-                        value={formatPrice(selectedQuote.l)}
-                      />
-                      <Stat
                         title="Since open"
                         value={signed(details.fromOpen)}
                         sub={
@@ -1221,8 +1203,16 @@ export default function WatchlistPanel({
               </>
             )}
           </div>
+          <div className="flex items-center justify-between border-t border-border px-2 py-2 text-xl font-bold text-content-muted">
+            <button type="button" className="btn w-49 bg-success hover:bg-success/80">
+              Buy
+            </button>
+            <button type="button" className="btn w-49 bg-danger hover:bg-danger/80">
+              Sell
+            </button>
+          </div>
         </div>
-      </aside>
-    </div>
+      </aside >
+    </div >
   );
 }

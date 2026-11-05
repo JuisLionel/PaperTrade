@@ -42,6 +42,16 @@ export async function GET(req: NextRequest) {
             retryAfter: error.retryAfter,
           };
         }
+        if (error instanceof FinnhubApiError && error.status === 423) {
+          return {
+            result: {
+              ...unavailable(symbol),
+              error: "Finnhub returned error 423 (Locked).",
+              errorCode: 423,
+            },
+            retryAfter: null,
+          };
+        }
         console.error(
           `Failed to load ${symbol.includes(":") ? "crypto " : ""}quote for ${symbol}:`,
           error,

@@ -2,13 +2,14 @@ import { Metadata } from "next";
 
 export const metadata: Metadata = {
   title: "News",
-  description: "",
+  description: "Stay informed with the latest financial news and market insights.",
 };
+
 
 export default function News() {
   return (
-    <main className="min-h-0 flex-1 bg-base p-6">
-      <h1 className="text-2xl font-semibold text-content">News</h1>
+    <main className="h-[1000px] flex-1 overflow-y-auto bg-base p-6">
+
     </main>
   );
 }

@@ -1,3 +1,5 @@
+import { publishFinnhub423Notification } from "./notifications";
+
 export type Asset = { symbol: string; name: string; kind: string };
 
 export type Quote = {
@@ -12,6 +14,7 @@ export type Quote = {
   t?: number | null;
   logo?: string | null;
   error?: string;
+  errorCode?: number;
   rateLimited?: boolean;
 };
 
@@ -55,6 +58,42 @@ export function getSp500Symbols(signal?: AbortSignal) {
   );
 }
 
+export async function getSp500IndexQuote(signal?: AbortSignal): Promise<Quote> {
+  const response = await fetch(
+    "/api/markets/index",
+    signal ? { signal } : undefined,
+  );
+  const result = (await response.json()) as {
+    symbol?: unknown;
+    c?: unknown;
+    d?: unknown;
+    dp?: unknown;
+    t?: unknown;
+    error?: unknown;
+  };
+  if (!response.ok) {
+    throw new Error(
+      typeof result.error === "string"
+        ? result.error
+        : `Could not load the S&P 500 index quote (${response.status}).`,
+    );
+  }
+  if (typeof result.c !== "number" || !Number.isFinite(result.c)) {
+    throw new Error("S&P 500 quote response is invalid.");
+  }
+
+  return {
+    symbol: typeof result.symbol === "string" ? result.symbol : "^GSPC",
+    c: result.c,
+    d: typeof result.d === "number" ? result.d : null,
+    dp: typeof result.dp === "number" ? result.dp : null,
+    h: null,
+    l: null,
+    o: null,
+    t: typeof result.t === "number" ? result.t : undefined,
+  };
+}
+
 export function getCryptoSymbols(signal?: AbortSignal) {
   return fetchAssets(
     "/api/markets/symbols?kind=crypto&v=2",
@@ -84,8 +123,13 @@ export async function getMarketQuotes(
     throw new Error(`Could not load market quotes (${response.status}).`);
   }
 
+  const quotes = (await response.json()) as Quote[];
+  quotes
+    .filter((quote) => quote.errorCode === 423)
+    .forEach((quote) => publishFinnhub423Notification(quote.symbol));
+
   return {
-    quotes: (await response.json()) as Quote[],
+    quotes,
     status: response.status,
     retryAfter: response.headers.get("Retry-After"),
   };

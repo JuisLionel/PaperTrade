@@ -44,8 +44,8 @@ export default function Sidebar() {
   const [isWatchlistOpen, setIsWatchlistOpen] = useState(false);
 
   return (
-    <div className="relative z-30 flex min-h-screen shrink-0">
-      <aside className="flex min-h-screen w-64 shrink-0 flex-col border-r border-border bg-base px-2 py-6">
+    <div className="sticky top-0 z-30 flex h-screen shrink-0">
+      <aside className="flex h-full w-64 shrink-0 flex-col border-r border-border bg-base px-2 py-6">
         <nav aria-label="Main navigation" className="flex-1 space-y-7">
           {navigationSections.map((section) => (
             <section key={section.title}>
@@ -117,7 +117,7 @@ export default function Sidebar() {
         <div className="space-y-1 border-t border-border pt-4">
           <Link
             href="/settings"
-            className="btn btn-ghost h-auto min-h-0 w-full justify-start gap-3 px-3 py-3 text-left text-base text-content-secondary hover:bg-elevated/70 hover:text-content"
+            className="btn btn-ghost h-auto min-h-0 w-full justify-start gap-3 bg-transparent px-3 py-3 text-left text-base text-content-secondary transition-colors hover:bg-elevated hover:text-content"
           >
             <FiSettings size={20} className="text-content-muted" />
             Settings

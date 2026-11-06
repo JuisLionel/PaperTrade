@@ -1,9 +1,6 @@
 import { NextResponse } from "next/server";
-import {
-  apiError,
-  FinnhubApiError,
-  finnhub,
-} from "../../../../lib/api";
+import { finnhub } from "@/lib/providers/finnhub";
+import { routeError } from "@/lib/route-error";
 
 const MARKET_INDICES = {
   sp500: { symbol: "^GSPC", name: "S&P 500", provider: "yahoo" },
@@ -108,10 +105,6 @@ export async function GET(request: Request) {
     });
   } catch (error) {
     console.error(`Failed to load the ${index.name} index quote:`, error);
-    if (error instanceof FinnhubApiError) return apiError(error);
-    return NextResponse.json(
-      { error: `Could not load the ${index.name} index quote.` },
-      { status: 502 },
-    );
+    return routeError(error);
   }
 }

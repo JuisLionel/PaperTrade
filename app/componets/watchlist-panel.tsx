@@ -2,7 +2,9 @@
 
 import Image from "next/image";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { Button } from "antd";
 import { FiChevronDown, FiSearch } from "react-icons/fi";
+import { LuX } from "react-icons/lu";
 import { BsFillPinAngleFill } from "react-icons/bs";
 import useEscapeFocus from "../Hooks/useEscapeFocus";
 import {
@@ -212,8 +214,12 @@ function Stat({
 
 export default function WatchlistPanel({
   isOpen,
+  onClose,
+  mobile = false,
 }: {
   isOpen: boolean;
+  onClose: () => void;
+  mobile?: boolean;
 }) {
   const tabsRef = useRef<HTMLDivElement>(null);
   const searchRef = useRef<HTMLInputElement>(null);
@@ -225,7 +231,9 @@ export default function WatchlistPanel({
   const [selectedAsset, setSelectedAsset] = useState<Asset | null>(null);
   const [quotes, setQuotes] = useState<Record<string, Quote>>({});
   const [query, setQuery] = useState("");
-  const [category, setCategory] = useState<string>(ALL_CATEGORY);
+  const [category, setCategory] = useState<string>(
+    mobile ? PINNED_CATEGORY : ALL_CATEGORY,
+  );
   const [cryptoCategory, setCryptoCategory] = useState<string>(ALL_CRYPTO);
   const [searchResults, setSearchResults] = useState<Asset[]>([]);
   const [searchLoadedFor, setSearchLoadedFor] = useState("");
@@ -833,21 +841,53 @@ export default function WatchlistPanel({
   }, [selectedQuote]);
 
   const emptyMessage = `We couldn't find anything matching “${query}”.`
+  const panelOpen = isOpen;
 
   return (
-    <div className="pointer-events-none absolute left-full top-0 z-30 h-screen w-104 max-w-[calc(100vw-13.5rem)] overflow-hidden">
+    <div
+      className={
+        mobile
+          ? "h-full w-full overflow-hidden"
+          : "pointer-events-none absolute left-full top-0 z-30 h-screen w-104 max-w-[calc(100vw-13.5rem)] overflow-hidden"
+      }
+    >
       <aside
         aria-label="Watchlist"
-        aria-hidden={!isOpen}
-        className={`h-full w-full border-r border-border bg-base transition-[translate,opacity] duration-300 ease-out motion-reduce:transition-none ${isOpen
-          ? "pointer-events-auto translate-x-0 opacity-100"
-          : "pointer-events-none -translate-x-full opacity-0"
-          }`}
+        aria-hidden={!panelOpen}
+        inert={!panelOpen}
+        className={`h-full w-full border-r border-border bg-base ${
+          mobile
+            ? ""
+            : `transition-[translate] duration-200 ease-in-out motion-reduce:transition-none ${
+                panelOpen
+                  ? "pointer-events-auto translate-x-0"
+                  : "pointer-events-none -translate-x-full"
+              }`
+        }`}
       >
-        <div className="flex h-screen min-h-160 w-full flex-col">
+        <div className="flex h-full min-h-0 w-full flex-col">
           {/* Header */}
           <div className="flex h-14 shrink-0 items-center justify-between px-4">
-            <h2 className="text-sm font-semibold text-content">US markets</h2>
+            <div className="flex items-center gap-3">
+              <h2 className="text-sm font-semibold text-content">US markets</h2>
+            </div>
+            {mobile ? (
+              <Button
+                type="text"
+                aria-label="Close watchlist"
+                icon={<LuX size={24} aria-hidden />}
+                onClick={onClose}
+                className="!flex !size-10 !items-center !justify-center !rounded-full !p-0 !text-content-secondary hover:!bg-elevated hover:!text-content"
+              />
+            ) : (
+              <Button
+                type="text"
+                aria-label="Close watchlist"
+                icon={<LuX aria-hidden />}
+                onClick={onClose}
+                className="!flex !size-9 !items-center !justify-center !rounded-full !p-0 !text-content-secondary hover:!bg-elevated hover:!text-content"
+              />
+            )}
           </div>
 
           {/* Search */}

@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { finnhub } from "../../../../lib/api";
+import { finnhub } from "@/lib/providers/finnhub";
 
 const fmt = (d: Date) => d.toISOString().slice(0, 10);
 

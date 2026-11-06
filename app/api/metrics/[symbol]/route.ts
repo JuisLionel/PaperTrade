@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { finnhub } from "../../../../lib/api";
+import { finnhub } from "@/lib/providers/finnhub";
 
 export async function GET(
   _req: Request,
@@ -7,7 +7,7 @@ export async function GET(
 ) {
   const { symbol } = await params;
   try {
-    const data = await finnhub(
+    const data = await finnhub<{ metric?: Record<string, unknown> }>(
       "/stock/metric",
       { symbol: symbol.toUpperCase(), metric: "all" },
       21600

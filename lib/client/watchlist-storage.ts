@@ -5,6 +5,7 @@ const LEGACY_STORAGE_KEY = COOKIE_NAME;
 const COOKIE_MAX_AGE = 60 * 60 * 24 * 365;
 const MAX_COOKIE_VALUE_LENGTH = 3800;
 export const PINNED_ASSETS_CHANGED_EVENT = "papertrade:pinned-assets-changed";
+export const OPEN_WATCHLIST_EVENT = "papertrade:open-watchlist";
 
 function parseAssets(value: string): Asset[] {
   const parsed: unknown = JSON.parse(value);

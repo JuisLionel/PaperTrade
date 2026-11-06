@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import { Button } from "antd";
 import {
   Bell,
   CircleCheck,
@@ -14,6 +15,7 @@ import {
   UserRound,
   Wallet,
   ArrowDownToLine,
+  Menu,
 } from "lucide-react";
 import {
   getMarketIndexQuote,
@@ -39,7 +41,11 @@ const formatChange = (value: number | null | undefined) =>
     ? `${value >= 0 ? "+" : ""}${value.toFixed(2)}%`
     : "—";
 
-export default function Navbar() {
+export default function Navbar({
+  onOpenNavigation,
+}: {
+  onOpenNavigation?: () => void;
+}) {
   const [theme, setTheme] = useState<Theme>("dark");
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
@@ -187,6 +193,13 @@ export default function Navbar() {
 
   return (
     <header className="sticky top-0 z-20 flex h-14 shrink-0 items-center gap-2 border-b border-border bg-base px-3 sm:gap-4 sm:px-4">
+      <Button
+        type="text"
+        aria-label="Open navigation"
+        icon={<Menu aria-hidden />}
+        onClick={onOpenNavigation}
+        className="!hidden !size-9 !shrink-0 !items-center !justify-center !p-0 !text-content-secondary max-[760px]:!inline-flex"
+      />
       <div className="min-w-0 flex-1" />
 
       <div className="flex shrink-0 items-center gap-2">
@@ -196,9 +209,9 @@ export default function Navbar() {
           const price =
             typeof quote?.c === "number"
               ? quote.c.toLocaleString("en-US", {
-                  minimumFractionDigits: 2,
-                  maximumFractionDigits: 2,
-                })
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2,
+              })
               : indicesLoading
                 ? "Loading"
                 : "—";
@@ -208,22 +221,20 @@ export default function Navbar() {
               href="/markets"
               aria-label={`View ${name} market details`}
               title={indicesError ?? `${name} index`}
-              className={`${
-                index > 0 ? "hidden xl:inline-flex" : "inline-flex"
-              } h-8 min-w-0 items-center gap-1.5 rounded-md border border-border bg-surface px-2 text-ui-sm text-content-secondary no-underline transition-colors duration-[120ms] hover:border-content-muted hover:bg-elevated sm:gap-2 sm:px-2.5`}
+              className={`${index > 0 ? "hidden xl:inline-flex" : "inline-flex"
+                } h-8 min-w-0 items-center gap-1.5 rounded-md border border-border bg-surface px-2 text-ui-sm text-content-secondary no-underline transition-colors duration-[120ms] hover:border-content-muted hover:bg-elevated sm:gap-2 sm:px-2.5`}
             >
               <span className="hidden whitespace-nowrap text-content-muted sm:inline">
                 {name}
               </span>
               <span className="whitespace-nowrap tabular-nums">{price}</span>
               <span
-                className={`whitespace-nowrap tabular-nums ${
-                  typeof change !== "number"
+                className={`whitespace-nowrap tabular-nums ${typeof change !== "number"
                     ? "text-content-muted"
                     : positive
                       ? "text-green-500"
                       : "text-red-500"
-                }`}
+                  }`}
               >
                 {formatChange(change)}
               </span>
@@ -233,39 +244,39 @@ export default function Navbar() {
       </div>
 
       <div className="flex shrink-0 items-center gap-3">
-          <button
-            title={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
-            type="button"
-            className="grid size-8 place-items-center rounded-md text-content-secondary transition-colors duration-[120ms] hover:bg-elevated hover:text-content"
-            onClick={toggleTheme}
-            aria-label={`Switch to ${theme === "dark" ? "light" : "dark"} mode`}
-          >
-            {theme === "dark" ? (
-              <Sun size={18} strokeWidth={1.7} />
-            ) : (
-              <Moon size={18} strokeWidth={1.7} />
-            )}
-          </button>
+        <button
+          title={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
+          type="button"
+          className="grid size-8 place-items-center rounded-md text-content-secondary transition-colors duration-[120ms] hover:bg-elevated hover:text-content"
+          onClick={toggleTheme}
+          aria-label={`Switch to ${theme === "dark" ? "light" : "dark"} mode`}
+        >
+          {theme === "dark" ? (
+            <Sun size={18} strokeWidth={1.7} />
+          ) : (
+            <Moon size={18} strokeWidth={1.7} />
+          )}
+        </button>
 
         <div ref={notificationsRef} className="relative">
-            <button
-              title="Notifications"
-              type="button"
-              className="relative grid size-8 place-items-center rounded-md text-content-secondary transition-colors duration-[120ms] hover:bg-elevated hover:text-content"
-              onClick={() => {
-                const opening = !isNotificationsOpen;
-                if (opening) setUnreadCount(0);
-                setIsNotificationsOpen(opening);
-              }}
-              aria-label="Notifications"
-              aria-expanded={isNotificationsOpen}
-              aria-controls="notifications-panel"
-            >
-              <Bell size={18} strokeWidth={1.7} />
-              {unreadCount > 0 && (
-                <span className="absolute right-1.5 top-1.5 size-1.5 rounded-full bg-content" />
-              )}
-            </button>
+          <button
+            title="Notifications"
+            type="button"
+            className="relative grid size-8 place-items-center rounded-md text-content-secondary transition-colors duration-[120ms] hover:bg-elevated hover:text-content"
+            onClick={() => {
+              const opening = !isNotificationsOpen;
+              if (opening) setUnreadCount(0);
+              setIsNotificationsOpen(opening);
+            }}
+            aria-label="Notifications"
+            aria-expanded={isNotificationsOpen}
+            aria-controls="notifications-panel"
+          >
+            <Bell size={18} strokeWidth={1.7} />
+            {unreadCount > 0 && (
+              <span className="absolute right-1.5 top-1.5 size-1.5 rounded-full bg-content" />
+            )}
+          </button>
 
           {isNotificationsOpen && (
             <section
@@ -303,13 +314,12 @@ export default function Navbar() {
                       >
                         <Icon
                           aria-hidden="true"
-                          className={`mt-0.5 ${
-                            notification.type === "purchase"
+                          className={`mt-0.5 ${notification.type === "purchase"
                               ? "text-green-500"
                               : notification.type === "finnhub"
                                 ? "text-red-500"
                                 : "text-content-muted"
-                          }`}
+                            }`}
                           size={17}
                         />
                         <div>

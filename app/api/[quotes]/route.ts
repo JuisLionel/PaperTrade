@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { FinnhubApiError, finnhub } from "../../../lib/api";
+import { FinnhubApiError, finnhub } from "@/lib/providers/finnhub";
 
 const QUOTE_REVALIDATE = 60;
 const LOGO_REVALIDATE = 86400;

@@ -14,6 +14,7 @@ export type PurchaseCompletedDetails = {
 };
 
 const NOTIFICATION_EVENT = "papertrade:notification";
+let notificationSequence = 0;
 
 function publishNotification(
   notification: Omit<AppNotification, "id" | "createdAt">,
@@ -24,7 +25,7 @@ function publishNotification(
     new CustomEvent<AppNotification>(NOTIFICATION_EVENT, {
       detail: {
         ...notification,
-        id: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
+        id: `notification-${++notificationSequence}`,
         createdAt: Date.now(),
       },
     }),

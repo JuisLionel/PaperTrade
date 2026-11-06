@@ -1,13 +1,26 @@
 "use client";
 
-import { Suspense, useState, type ReactNode } from "react";
-import { ConfigProvider } from "antd";
+import { Suspense, useEffect, useState, type ReactNode } from "react";
+import { ConfigProvider, Drawer } from "antd";
 import Navbar from "./navbar";
 import Sidebar from "./sidebar";
 import { NavigationVisibilityContext } from "../../Hooks/useNavigationVisibility";
+import { OPEN_WATCHLIST_EVENT } from "@/lib/client/watchlist-storage";
 
 export default function NavigationShell({ children }: { children: ReactNode }) {
   const [navigationVisible, setNavigationVisible] = useState(true);
+  const [mobileNavigationOpen, setMobileNavigationOpen] = useState(false);
+  const [mobileWatchlistRequest, setMobileWatchlistRequest] = useState(0);
+
+  useEffect(() => {
+    const openMobileWatchlist = () => {
+      if (!window.matchMedia("(max-width: 760px)").matches) return;
+      setMobileNavigationOpen(true);
+      setMobileWatchlistRequest((request) => request + 1);
+    };
+    window.addEventListener(OPEN_WATCHLIST_EVENT, openMobileWatchlist);
+    return () => window.removeEventListener(OPEN_WATCHLIST_EVENT, openMobileWatchlist);
+  }, []);
 
   return (
     <ConfigProvider
@@ -43,21 +56,44 @@ export default function NavigationShell({ children }: { children: ReactNode }) {
       <NavigationVisibilityContext.Provider value={setNavigationVisible}>
         <div className="flex min-h-screen">
           {navigationVisible && (
-            <Suspense
-              fallback={
-                <aside
-                  aria-hidden="true"
-                  className="h-screen w-60 shrink-0 border-r border-neutral-800 bg-base"
-                />
-              }
-            >
-              <Sidebar />
-            </Suspense>
+            <div className="max-[760px]:hidden">
+              <Suspense
+                fallback={
+                  <aside
+                    aria-hidden="true"
+                    className="h-screen w-60 shrink-0 border-r border-neutral-800 bg-base"
+                  />
+                }
+              >
+                <Sidebar />
+              </Suspense>
+            </div>
           )}
           <div className="flex min-w-0 flex-1 flex-col">
-            {navigationVisible && <Navbar />}
+            {navigationVisible && (
+              <Navbar onOpenNavigation={() => setMobileNavigationOpen(true)} />
+            )}
             {children}
           </div>
+          {navigationVisible && (
+            <Drawer
+              placement="left"
+              size="100%"
+              mask={false}
+              open={mobileNavigationOpen}
+              onClose={() => setMobileNavigationOpen(false)}
+              closable={false}
+              className="min-[761px]:!hidden [&_.ant-drawer-content-wrapper]:!w-full [&_.ant-drawer-content-wrapper]:!max-w-full [&_.ant-drawer-content]:!h-[100dvh] [&_.ant-drawer-content]:!bg-surface [&_.ant-drawer-body]:!h-full [&_.ant-drawer-body]:!overflow-hidden [&_.ant-drawer-body]:!bg-surface [&_.ant-drawer-body]:!p-0 [&_.ant-drawer-header]:!hidden"
+            >
+              <Suspense fallback={<div className="h-full bg-base" />}>
+                <Sidebar
+                  mobile
+                  onNavigate={() => setMobileNavigationOpen(false)}
+                  watchlistRequest={mobileWatchlistRequest}
+                />
+              </Suspense>
+            </Drawer>
+          )}
         </div>
       </NavigationVisibilityContext.Provider>
     </ConfigProvider>

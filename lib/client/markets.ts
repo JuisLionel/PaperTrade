@@ -63,18 +63,22 @@ export async function getSp500IndexQuote(signal?: AbortSignal): Promise<Quote> {
 }
 
 export async function getMarketIndexQuote(
-  index: "sp500" | "btc" | "dow",
+  index: "sp500" | "btc" | "dow" | "nasdaq" | "russell",
   signal?: AbortSignal,
 ): Promise<Quote> {
   const indexNames = {
     sp500: "S&P 500",
     btc: "BTC",
     dow: "Dow",
+    nasdaq: "Nasdaq",
+    russell: "Russell 2000",
   } as const;
   const indexSymbols = {
     sp500: "^GSPC",
     btc: "BINANCE:BTCUSDT",
     dow: "^DJI",
+    nasdaq: "^IXIC",
+    russell: "^RUT",
   } as const;
   const response = await fetch(
     `/api/markets/index?index=${index}`,

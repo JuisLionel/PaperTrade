@@ -25,6 +25,7 @@ import {
   CRYPTO_CATEGORIES,
   getCryptoCategory,
 } from "@/lib/crypto-categories";
+import { MARKET_SECTORS as SECTORS } from "@/lib/market-sectors";
 
 const PAGE_SIZE = 10;
 const QUOTE_BATCH_SIZE = 5;
@@ -67,73 +68,8 @@ const LOSERS_CATEGORY = "losers";
 const CRYPTO_CATEGORY = "crypto";
 const ALL_CRYPTO = "all-crypto";
 
-const toSet = (symbols: string) => new Set(symbols.split(/\s+/).filter(Boolean));
 const isCryptoAsset = (asset: Asset) =>
   asset.kind.toLowerCase().includes("crypto");
-
-// Static sector map. Add tickers to any list to extend a sector.
-const SECTORS = [
-  {
-    id: "tech",
-    label: "Tech",
-    symbols: toSet(`
-      AAPL MSFT NVDA AVGO ORCL CRM ADBE AMD INTC CSCO QCOM TXN IBM NOW INTU
-      AMAT MU LRCX KLAC ADI PANW SNPS CDNS ANET ACN FTNT HPQ DELL NXPI MCHP
-      ON ROP MSI APH TEL GLW WDC STX NTAP JNPR KEYS FSLR ENPH SMCI PLTR
-    `),
-  },
-  {
-    id: "comm",
-    label: "Comm",
-    symbols: toSet(`
-      GOOGL GOOG META NFLX DIS CMCSA T VZ TMUS CHTR EA TTWO WBD PARA FOX
-      FOXA OMC IPG LYV MTCH
-    `),
-  },
-  {
-    id: "finance",
-    label: "Finance",
-    symbols: toSet(`
-      JPM BAC WFC C GS MS BLK SCHW AXP V MA PYPL COF USB PNC TFC BK AFL MET
-      PRU AIG TRV CB ALL PGR MMC AON SPGI MCO ICE CME BRK.B BRK-B FITB HBAN
-      KEY RF CFG NTRS STT DFS SYF AJG MSCI NDAQ CBOE
-    `),
-  },
-  {
-    id: "health",
-    label: "Health",
-    symbols: toSet(`
-      UNH JNJ LLY PFE MRK ABBV ABT TMO DHR BMY AMGN GILD CVS CI ELV HUM MDT
-      ISRG SYK BSX VRTX REGN ZTS BDX A MRNA HCA IQV IDXX EW DXCM BIIB MCK
-      CAH COR HOLX ZBH RMD WAT MTD
-    `),
-  },
-  {
-    id: "energy",
-    label: "Energy",
-    symbols: toSet(`
-      XOM CVX COP EOG SLB OXY PSX MPC VLO WMB KMI OKE HAL BKR DVN FANG HES
-      CTRA APA TRGP EQT
-    `),
-  },
-  {
-    id: "consumer",
-    label: "Consumer",
-    symbols: toSet(`
-      AMZN TSLA HD MCD NKE SBUX LOW TGT COST WMT PG KO PEP PM MO MDLZ CL KMB
-      BKNG MAR HLT ABNB GM F LULU TJX ROST ORLY AZO YUM CMG DG DLTR KHC GIS
-      HSY STZ KDP EL KR SYY
-    `),
-  },
-  {
-    id: "industrials",
-    label: "Industrials",
-    symbols: toSet(`
-      CAT DE BA HON GE RTX LMT NOC UPS FDX UNP CSX NSC MMM ETN EMR ITW WM GD
-      PH CMI PCAR ROK FAST CTAS RSG LHX TDG URI DAL UAL LUV
-    `),
-  },
-];
 
 function getRateLimitSeconds(retryAfter: string | null) {
   const retrySeconds = retryAfter ? Number(retryAfter) : NaN;
@@ -159,27 +95,27 @@ function LogoAvatar({
   fallback: string;
   size: 20 | 36;
 }) {
-  const box = size === 20 ? "w-5" : "w-9";
+  const box = size === 20 ? "size-5" : "size-9";
   return logo ? (
-    <div className="avatar">
-      <div className={`${box} rounded-full bg-white`}>
+    <div className="shrink-0">
+      <div className={`relative ${box} overflow-hidden rounded-sm bg-white`}>
         <Image
           src={logo}
           alt=""
-          width={size}
-          height={size}
+          fill
+          sizes={`${size}px`}
           unoptimized
-          className="object-contain"
+          className="object-cover"
         />
       </div>
     </div>
   ) : (
-    <div className="avatar avatar-placeholder">
+    <div className="shrink-0">
       <div
-        className={`${box} rounded-full bg-neutral text-neutral-content ${size === 20 ? "text-[9px]" : "text-sm font-bold"
+        className={`${box} flex items-center justify-center rounded-sm bg-neutral text-neutral-content ${size === 20 ? "text-[9px]" : "text-sm font-bold"
           }`}
       >
-        <span>{fallback}</span>
+        {fallback}
       </div>
     </div>
   );
@@ -222,6 +158,13 @@ export default function WatchlistPanel({
   mobile?: boolean;
 }) {
   const tabsRef = useRef<HTMLDivElement>(null);
+  const tabDragRef = useRef<{
+    pointerId: number;
+    startX: number;
+    startScrollLeft: number;
+    moved: boolean;
+  } | null>(null);
+  const suppressTabClickRef = useRef(false);
   const searchRef = useRef<HTMLInputElement>(null);
   useEscapeFocus(searchRef);
   const [assets, setAssets] = useState<Asset[]>([]);
@@ -542,6 +485,47 @@ export default function WatchlistPanel({
       { id: CRYPTO_CATEGORY, label: "Crypto" },
     ];
   }, [assets, pinnedAssets]);
+
+  const startTabDrag = (event: React.PointerEvent<HTMLDivElement>) => {
+    if (event.pointerType !== "mouse" || event.button !== 0) return;
+    tabDragRef.current = {
+      pointerId: event.pointerId,
+      startX: event.clientX,
+      startScrollLeft: event.currentTarget.scrollLeft,
+      moved: false,
+    };
+    event.currentTarget.setPointerCapture(event.pointerId);
+  };
+
+  const moveTabDrag = (event: React.PointerEvent<HTMLDivElement>) => {
+    const drag = tabDragRef.current;
+    if (!drag || drag.pointerId !== event.pointerId) return;
+    const distance = event.clientX - drag.startX;
+    if (Math.abs(distance) > 4) drag.moved = true;
+    if (drag.moved) {
+      event.preventDefault();
+      event.currentTarget.scrollLeft = drag.startScrollLeft - distance;
+    }
+  };
+
+  const stopTabDrag = (event: React.PointerEvent<HTMLDivElement>) => {
+    const drag = tabDragRef.current;
+    if (!drag || drag.pointerId !== event.pointerId) return;
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+      event.currentTarget.releasePointerCapture(event.pointerId);
+    }
+    suppressTabClickRef.current = drag.moved;
+    tabDragRef.current = null;
+  };
+
+  const preventTabClickAfterDrag = (
+    event: React.MouseEvent<HTMLDivElement>,
+  ) => {
+    if (!suppressTabClickRef.current) return;
+    event.preventDefault();
+    event.stopPropagation();
+    suppressTabClickRef.current = false;
+  };
 
   const filteredAssets = useMemo(() => {
     const search = query.trim();
@@ -925,45 +909,59 @@ export default function WatchlistPanel({
             )}
           </div>
 
-          <div
-            ref={tabsRef}
-            role="tablist"
-            aria-label="Watchlist categories"
-            className="hide-scrollbar flex w-full shrink-0 gap-0 overflow-x-auto px-2 py-1"
-          >
-            {categoryTabs.map((tab) => (
-              <div key={tab.id} className="shrink-0 basis-1/5 min-w-0 px-1">
-                <button
-                  type="button"
-                  role="tab"
-                  aria-selected={category === tab.id}
-                  title={tab.label}
-                  onClick={(event) => {
-                    setCategory(tab.id);
-                    setCryptoCategory(ALL_CRYPTO);
-                    const isMoverTab =
-                      tab.id === GAINERS_CATEGORY || tab.id === LOSERS_CATEGORY;
-                    setVisibleCount(isMoverTab ? MOVERS_SCAN_SIZE : PAGE_SIZE);
-                    if (isMoverTab) setMoversScanCount(MOVERS_SCAN_SIZE);
-                    if (tab.id === CRYPTO_CATEGORY && cryptoAssets.length) {
-                      setSelectedSymbol(cryptoAssets[0].symbol);
-                      setSelectedAsset(cryptoAssets[0]);
-                    }
-                    event.currentTarget.scrollIntoView({
-                      behavior: "smooth",
-                      inline: "center",
-                      block: "nearest",
-                    });
-                  }}
-                  className={`w-full min-w-0 overflow-hidden text-ellipsis whitespace-nowrap rounded-md px-1 py-1.5 text-center text-xs font-normal transition-colors duration-200 ease-out ${category === tab.id
-                    ? "bg-elevated text-content"
-                    : "text-content-muted hover:bg-elevated hover:text-content"
-                    }`}
+          <div className="w-full shrink-0 px-2 py-1">
+            <div
+              ref={tabsRef}
+              role="tablist"
+              aria-label="Watchlist categories"
+              onPointerDown={startTabDrag}
+              onPointerMove={moveTabDrag}
+              onPointerUp={stopTabDrag}
+              onPointerCancel={stopTabDrag}
+              onClickCapture={preventTabClickAfterDrag}
+              className="hide-scrollbar flex min-w-0 touch-pan-x snap-x snap-mandatory cursor-grab select-none gap-0 overflow-x-auto active:cursor-grabbing"
+            >
+              {categoryTabs.map((tab) => (
+                <div
+                  key={tab.id}
+                  className="w-1/3 shrink-0 snap-start px-1 sm:w-1/4"
                 >
-                  {tab.label}
-                </button>
-              </div>
-            ))}
+                  <button
+                    type="button"
+                    role="tab"
+                    aria-selected={category === tab.id}
+                    title={tab.label}
+                    onClick={(event) => {
+                      setCategory(tab.id);
+                      setCryptoCategory(ALL_CRYPTO);
+                      const isMoverTab =
+                        tab.id === GAINERS_CATEGORY ||
+                        tab.id === LOSERS_CATEGORY;
+                      setVisibleCount(
+                        isMoverTab ? MOVERS_SCAN_SIZE : PAGE_SIZE,
+                      );
+                      if (isMoverTab) setMoversScanCount(MOVERS_SCAN_SIZE);
+                      if (tab.id === CRYPTO_CATEGORY && cryptoAssets.length) {
+                        setSelectedSymbol(cryptoAssets[0].symbol);
+                        setSelectedAsset(cryptoAssets[0]);
+                      }
+                      event.currentTarget.scrollIntoView({
+                        behavior: "smooth",
+                        inline: "center",
+                        block: "nearest",
+                      });
+                    }}
+                    className={`w-full min-w-0 overflow-hidden text-ellipsis whitespace-nowrap rounded-md px-1 py-1.5 text-center text-xs font-normal transition-colors duration-200 ease-out ${
+                      category === tab.id
+                        ? "bg-elevated text-content"
+                        : "text-content-muted hover:bg-elevated hover:text-content"
+                    }`}
+                  >
+                    {tab.label}
+                  </button>
+                </div>
+              ))}
+            </div>
           </div>
 
           {category === CRYPTO_CATEGORY && (

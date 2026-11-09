@@ -6,6 +6,8 @@ const MARKET_INDICES = {
   sp500: { symbol: "^GSPC", name: "S&P 500", provider: "yahoo" },
   btc: { symbol: "BINANCE:BTCUSDT", name: "BTC", provider: "finnhub" },
   dow: { symbol: "^DJI", name: "Dow", provider: "yahoo" },
+  nasdaq: { symbol: "^IXIC", name: "Nasdaq", provider: "yahoo" },
+  russell: { symbol: "^RUT", name: "Russell 2000", provider: "yahoo" },
 } as const;
 
 type MarketIndex = keyof typeof MARKET_INDICES;

@@ -24,3 +24,16 @@ export function orderTime(iso: string) {
     return `Today ${d.toLocaleTimeString(LOCALE, { hour: "2-digit", minute: "2-digit", hour12: false })}`;
   return d.toLocaleDateString(LOCALE, { month: "short", day: "2-digit" });
 }
+
+export const fmt = (n: number, digits = 2) =>
+  n.toLocaleString("en-US", {
+    minimumFractionDigits: digits,
+    maximumFractionDigits: digits,
+  });
+
+export const digitsFor = (n: number) => (Math.abs(n) < 1 ? 4 : 2);
+
+export const signed = (n: number, digits = 2, suffix = "") =>
+  `${n >= 0 ? "+" : ""}${fmt(n, digits)}${suffix}`;
+
+export const tone = (n: number) => (n >= 0 ? "text-success" : "text-danger");

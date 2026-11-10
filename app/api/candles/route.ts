@@ -12,7 +12,12 @@ export async function GET(req: Request) {
 
   try {
     const body: CandlesResponse = { series: await getSeries(symbols, interval) };
-    return NextResponse.json(body);
+    const maxAge = interval === "1day" ? 600 : 120;
+    return NextResponse.json(body, {
+      headers: {
+        "Cache-Control": `public, max-age=${maxAge}, stale-while-revalidate=${maxAge * 2}`,
+      },
+    });
   } catch (e) {
     return routeError(e);
   }

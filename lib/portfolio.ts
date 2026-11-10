@@ -47,6 +47,11 @@ export function buildSummary(account: Account, rows: HoldingRow[]): Summary {
 
 const BARS = { "1W": 5, "1M": 22, "3M": 66 } as const;
 
+function localTimestamp(date: Date): string {
+  const pad = (value: number) => String(value).padStart(2, "0");
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}:00`;
+}
+
 /**
  * Equity curve = cash + today's shares × historical closes (what the current portfolio
  * would have been worth). SPY is rescaled to the same starting value for comparison.
@@ -62,10 +67,11 @@ export function buildEquityCurve(args: {
   const src = range === "1D" ? intraday : daily;
   const bench = src["SPY"];
   const held = account.positions.filter((p) => src[p.symbol]);
-  if (!bench || !account.positions.length || held.length !== account.positions.length) return [];
+  if (!bench || held.length !== account.positions.length) return [];
 
   const L = Math.min(bench.c.length, ...held.map((p) => src[p.symbol].c.length));
   const times = bench.t.slice(-L);
+  if (L < 2) return [];
 
   let start = 0;
   if (range === "1D") {
@@ -77,15 +83,36 @@ export function buildEquityCurve(args: {
   } else if (range !== "ALL") {
     start = Math.max(0, L - BARS[range]);
   }
+
+  const now = new Date();
+  const nowTimestamp = localTimestamp(now);
+  const today = nowTimestamp.slice(0, 10);
+  const currentTotal =
+    liveTotal !== undefined && Number.isFinite(liveTotal) ? liveTotal : undefined;
+  const latestIsToday = times[L - 1].slice(0, 10) === today;
+  const appendLivePoint =
+    currentTotal !== undefined &&
+    range !== "1D" &&
+    !latestIsToday;
+
+  if (appendLivePoint && range !== "YTD" && range !== "ALL") {
+    start = Math.max(start, L - BARS[range] + 1);
+  }
   if (L - start < 2) return [];
 
   const at = (s: Series, i: number) => s.c[s.c.length - L + i];
   const valueAt = (i: number) => account.cash + sum(held.map((p) => p.shares * at(src[p.symbol], i)));
   const first = valueAt(start);
   const base = at(bench, start);
-
   const pts: CurvePoint[] = [];
   for (let i = start; i < L; i++) pts.push({ t: times[i], value: valueAt(i), bench: first * (at(bench, i) / base) });
-  if (liveTotal) pts[pts.length - 1].value = liveTotal;
+  if (currentTotal !== undefined && (range !== "1D" || latestIsToday)) {
+    if (appendLivePoint) {
+      pts.push({ t: today, value: currentTotal, bench: pts[pts.length - 1].bench });
+    } else {
+      pts[pts.length - 1].value = currentTotal;
+      if (latestIsToday) pts[pts.length - 1].t = nowTimestamp;
+    }
+  }
   return pts;
 }

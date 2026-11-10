@@ -30,15 +30,6 @@
   --font-display: var(--font-space-grotesk), ui-sans-serif, system-ui, sans-serif;
 }
 
-@media (min-width: 761px) {
-  .dashboard-scale {
-    --text-ui-sm: 15.6px;
-    --text-ui-base: 16.8px;
-    --text-ui-lg: 19.2px;
-    --text-ui-xl: 24px;
-  }
-}
-
 @layer base {
   :where(
     a,

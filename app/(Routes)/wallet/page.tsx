@@ -2,7 +2,7 @@ import { Metadata } from "next";
 
 export const metadata: Metadata = {
   title: "Wallet",
-  description: "",
+  description: "Review your simulated cash balance and available funds.",
 };
 
 export default function Wallet() {

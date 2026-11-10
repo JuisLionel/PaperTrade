@@ -76,13 +76,14 @@ export async function getQuotes(symbols: string[]): Promise<Record<string, Quote
 
 interface RawNews { id: number; headline: string; source: string; url: string; image: string; datetime: number }
 
-export async function getMarketNews(limit = 4): Promise<NewsItem[]> {
+export async function getMarketNews(limit: number | null = 8): Promise<NewsItem[]> {
   const items = (await finnhub<RawNews[]>("/news", { category: "general" }, 120)).filter(
     (n) => n.headline && n.url,
   );
   const withImage = items.filter((n) => n.image);
-  const pool = withImage.length >= limit ? withImage : items;
-  return pool.slice(0, limit).map(({ id, headline, source, url, image, datetime }) => ({
+  const pool = limit === null ? items : withImage.length >= limit ? withImage : items;
+  const count = limit === null ? pool.length : Math.max(1, Math.min(50, Math.floor(limit)));
+  return pool.slice(0, count).map(({ id, headline, source, url, image, datetime }) => ({
     id, headline, source, url, image, datetime,
   }));
 }

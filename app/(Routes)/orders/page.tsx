@@ -2,7 +2,7 @@ import { Metadata } from "next";
 
 export const metadata: Metadata = {
   title: "Orders",
-  description: "",
+  description: "Review your simulated stock orders and their status.",
 };
 
 export default function orders() {

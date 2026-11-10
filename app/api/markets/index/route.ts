@@ -96,15 +96,22 @@ export async function GET(request: Request) {
 
     if (price === null) throw new Error(`${index.name} price is unavailable.`);
 
-    return NextResponse.json({
-      key: indexKey,
-      symbol,
-      name: index.name,
-      c: price,
-      d: change,
-      dp: changePercent,
-      t: timestamp ?? undefined,
-    });
+    return NextResponse.json(
+      {
+        key: indexKey,
+        symbol,
+        name: index.name,
+        c: price,
+        d: change,
+        dp: changePercent,
+        t: timestamp ?? undefined,
+      },
+      {
+        headers: {
+          "Cache-Control": "public, max-age=60, stale-while-revalidate=120",
+        },
+      },
+    );
   } catch (error) {
     console.error(`Failed to load the ${index.name} index quote:`, error);
     return routeError(error);

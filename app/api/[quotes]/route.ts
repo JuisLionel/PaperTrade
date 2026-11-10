@@ -94,6 +94,13 @@ export async function GET(req: NextRequest) {
   );
   return NextResponse.json(results, {
     status: rateLimited ? 429 : 200,
-    headers: rateLimited ? { "Retry-After": retryAfter ?? "60" } : undefined,
+    headers: rateLimited
+      ? {
+          "Cache-Control": "no-store",
+          "Retry-After": retryAfter ?? "60",
+        }
+      : {
+          "Cache-Control": "public, max-age=60, stale-while-revalidate=120",
+        },
   });
 }

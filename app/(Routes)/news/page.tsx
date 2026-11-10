@@ -1,4 +1,5 @@
 import { Metadata } from "next";
+import NewsContent from "./NewsContent";
 
 export const metadata: Metadata = {
   title: "News",
@@ -7,9 +8,5 @@ export const metadata: Metadata = {
 
 
 export default function News() {
-  return (
-    <main className="h-[1000px] flex-1 overflow-y-auto bg-base p-6">
-
-    </main>
-  );
+  return <NewsContent />;
 }

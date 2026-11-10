@@ -17,5 +17,9 @@ export async function GET(req: Request) {
     quotes,
     asOf: Date.now(),
   };
-  return NextResponse.json(body);
+  return NextResponse.json(body, {
+    headers: {
+      "Cache-Control": "public, max-age=15, stale-while-revalidate=30",
+    },
+  });
 }

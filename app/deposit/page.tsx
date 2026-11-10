@@ -2,7 +2,7 @@ import { Metadata } from "next";
 
 export const metadata: Metadata = {
   title: "Deposit",
-  description: "",
+  description: "Add virtual funds to your PaperTrade account.",
 };
 
 export default function Deposit() {

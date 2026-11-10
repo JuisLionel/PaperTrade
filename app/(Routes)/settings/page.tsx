@@ -2,7 +2,7 @@ import { Metadata } from "next";
 
 export const metadata: Metadata = {
   title: "Settings",
-  description: "",
+  description: "Manage your PaperTrade account and application preferences.",
 };
 
 export default function Settings() {

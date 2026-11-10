@@ -40,12 +40,12 @@ export function EquityChart({ points, range }: { points: CurvePoint[]; range: Ra
   return (
     <div>
       <div className="flex gap-3">
-        <div className="flex h-[190px] flex-col justify-between text-right text-[11px] text-content-muted tabular-nums min-[761px]:h-[228px] min-[761px]:text-[13px]">
+        <div className="flex h-[120px] flex-col justify-between text-right text-[13px] text-content-muted tabular-nums min-[761px]:h-[140px] min-[761px]:text-[14px]">
           {geo.ticks.map((t) => <span key={t}>{compactUsd(t)}</span>)}
         </div>
 
         <div
-          className="relative h-[190px] min-w-0 flex-1 min-[761px]:h-[228px]"
+          className="relative h-[120px] min-w-0 flex-1 min-[761px]:h-[140px]"
           onMouseMove={(e) => {
             const r = e.currentTarget.getBoundingClientRect();
             const ratio = Math.min(1, Math.max(0, (e.clientX - r.left) / r.width));
@@ -74,14 +74,14 @@ export function EquityChart({ points, range }: { points: CurvePoint[]; range: Ra
 
           <div className="pointer-events-none absolute top-0 flex gap-2 whitespace-nowrap"
             style={{ left: `${leftPct}%`, transform: leftPct > 60 ? "translateX(calc(-100% - 12px))" : "translateX(12px)" }}>
-            <span className="inline-flex items-center gap-2 rounded-full bg-elevated px-3 py-0.5 text-ui-sm text-opposite tabular-nums">
+            <span className="inline-flex items-center gap-2 rounded-full bg-elevated px-3 py-0.5 text-[17px] text-opposite tabular-nums">
               <i className={`size-1.5 rounded-full ${up ? "bg-success" : "bg-danger"}`} />{usd(p.value)}
             </span>
           </div>
         </div>
       </div>
 
-      <div className="mt-2 flex justify-between pl-[52px] text-[11px] text-content-muted min-[761px]:pl-[60px] min-[761px]:text-[13px]">
+      <div className="mt-2 flex justify-between pl-[42px] text-[13px] text-content-muted min-[761px]:pl-[48px] min-[761px]:text-[14px]">
         {dots.map((i) => <span key={i}>{label(points[i].t, range)}</span>)}
       </div>
     </div>

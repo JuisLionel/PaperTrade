@@ -4,7 +4,16 @@ import { Suspense } from "react";
 import NavigationShell from "./componets/navigation/navigation-shell";
 import { AntdRegistry } from "@ant-design/nextjs-registry";
 import AntdProvider from "./componets/providers/AntdProvider";
+import type { Metadata } from "next";
 
+export const metadata: Metadata = {
+  title: {
+    default: "PaperTrade",
+    template: "%s | PaperTrade",
+  },
+  description:
+    "Practice investing with a simulated portfolio, live market data, and paper trading tools.",
+};
 
 const spaceGrotesk = Space_Grotesk({
   subsets: ["latin"],
@@ -23,7 +32,9 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         <Suspense fallback={<div className="min-h-screen bg-base" />}>
           <AntdRegistry>
             <AntdProvider>
-              <NavigationShell>{children}</NavigationShell>
+              <NavigationShell>
+                {children}
+              </NavigationShell>
             </AntdProvider>
           </AntdRegistry>
         </Suspense>

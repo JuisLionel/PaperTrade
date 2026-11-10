@@ -189,8 +189,14 @@ async function loadAllUsAssets(): Promise<WatchlistAsset[]> {
   return allInflight;
 }
 
-const LIST_HEADERS = {
-  "Cache-Control": "private, no-store, max-age=0",
+const CRYPTO_HEADERS = {
+  "Cache-Control": "public, max-age=3600, stale-while-revalidate=86400",
+};
+const SP500_HEADERS = {
+  "Cache-Control": "public, max-age=3600, stale-while-revalidate=86400",
+};
+const ALL_SYMBOLS_HEADERS = {
+  "Cache-Control": "public, max-age=3600, stale-while-revalidate=21600",
 };
 
 export async function GET(request: NextRequest) {
@@ -238,12 +244,12 @@ export async function GET(request: NextRequest) {
       name: coin.name,
       kind: "Crypto",
     }));
-    return NextResponse.json(cryptoAssets, { headers: LIST_HEADERS });
+    return NextResponse.json(cryptoAssets, { headers: CRYPTO_HEADERS });
   }
 
   if (kind === "sp500") {
     try {
-      return NextResponse.json(await loadSp500(), { headers: LIST_HEADERS });
+      return NextResponse.json(await loadSp500(), { headers: SP500_HEADERS });
     } catch (error) {
       console.error("Failed to load S&P 500 symbols:", error);
       return NextResponse.json(
@@ -256,7 +262,7 @@ export async function GET(request: NextRequest) {
   // Default: everything Finnhub has for the US market
   try {
     return NextResponse.json(await loadAllUsAssets(), {
-      headers: LIST_HEADERS,
+      headers: ALL_SYMBOLS_HEADERS,
     });
   } catch (error) {
     if (error instanceof FinnhubApiError && error.status === 429) {

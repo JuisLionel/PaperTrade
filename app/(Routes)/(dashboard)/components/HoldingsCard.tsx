@@ -22,7 +22,7 @@ const columns: TableColumnsType<HoldingRow> = [
     render: (_, r) => (
       <div className={`tabular-nums ${toneText(r.pnl)}`}>
         <div>{signedUsd(r.pnl)}</div>
-        <div className="text-[11px] opacity-80">{signedPct(r.pnlPct)}</div>
+        <div className="text-[14px] opacity-80">{signedPct(r.pnlPct)}</div>
       </div>
     ) },
 ];
@@ -32,7 +32,7 @@ interface Props { rows: HoldingRow[]; loading: boolean; error: string | null; on
 export function HoldingsCard({ rows, loading, error, onRetry, className }: Props) {
   return (
     <Card title="Holdings" className={className}
-      action={<span className="text-ui-sm text-content-muted">{rows.length} positions</span>}>
+      action={<span className="text-[17px] text-content-muted">{rows.length} positions</span>}>
       <div className="min-h-0 flex-1 overflow-hidden">
         {error && !rows.length ? (
           <CardError message={error} onRetry={onRetry} />

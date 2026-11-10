@@ -7,6 +7,9 @@ export const fetchDashboard = (symbols: string[], signal?: AbortSignal) =>
 export const fetchMarketNews = (signal?: AbortSignal) =>
   getJson<NewsItem[]>("/api/news", signal);
 
+export const fetchNewsFeed = (signal?: AbortSignal) =>
+  getJson<NewsItem[]>("/api/news?limit=all", signal);
+
 export const fetchCandles = (symbols: string[], interval: Interval, signal?: AbortSignal) =>
   getJson<CandlesResponse>(
     `/api/candles?symbols=${encodeURIComponent(symbols.join(","))}&interval=${interval}`,

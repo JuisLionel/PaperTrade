@@ -68,7 +68,7 @@ function NewsImage({
 function NewsLoadingState() {
   return (
     <div className="space-y-3" aria-busy="true">
-      {Array.from({ length: 11 }, (_, index) => (
+      {Array.from({ length: 10 }, (_, index) => (
         <div
           key={index}
           className="flex animate-pulse gap-3 rounded-lg border border-elevated bg-surface p-3 sm:items-center sm:gap-4"

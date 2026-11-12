@@ -141,6 +141,30 @@ function FilterSections({
 export default function NewsFilters(props: NewsFiltersProps) {
   const [filtersOpen, setFiltersOpen] = useState(false);
   const filtersRef = useRef<HTMLDivElement>(null);
+  const searchRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    const focusSearchOnSlash = (event: KeyboardEvent) => {
+      const target = event.target;
+      if (
+        event.key !== "/" ||
+        event.ctrlKey ||
+        event.metaKey ||
+        event.altKey ||
+        (target instanceof HTMLElement &&
+          (target.isContentEditable ||
+            ["INPUT", "TEXTAREA", "SELECT"].includes(target.tagName)))
+      ) {
+        return;
+      }
+
+      event.preventDefault();
+      searchRef.current?.focus();
+    };
+
+    window.addEventListener("keydown", focusSearchOnSlash);
+    return () => window.removeEventListener("keydown", focusSearchOnSlash);
+  }, []);
 
   useEffect(() => {
     if (!filtersOpen) return;
@@ -175,14 +199,20 @@ export default function NewsFilters(props: NewsFiltersProps) {
       </div>
 
       <div className="flex items-start gap-2">
-        <label className="flex h-10 min-w-0 flex-1 items-center gap-2 rounded-md border border-elevated bg-surface px-3 text-content-muted focus-within:border-content">
+        <label className="flex h-9 min-w-0 flex-1 items-center gap-2 rounded-sm border border-elevated bg-surface px-3 text-content-muted focus-within:border-content">
           <LuSearch className="size-4 shrink-0" aria-hidden />
           <input
+            ref={searchRef}
+            type="search"
             value={props.query}
             onChange={(event) => props.onQueryChange(event.target.value)}
-            placeholder="Search"
+            aria-label="Search news"
+            placeholder="Search news"
             className="min-w-0 flex-1 bg-transparent text-ui-sm text-opposite outline-none placeholder:text-content-muted"
           />
+          <kbd className="kbd kbd-sm border-0 bg-elevated text-content-secondary">
+            /
+          </kbd>
         </label>
 
         <div ref={filtersRef} className="relative shrink-0 lg:hidden">

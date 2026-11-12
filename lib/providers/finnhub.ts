@@ -84,6 +84,11 @@ export async function getMarketNews(limit: number | null = 8): Promise<NewsItem[
   const pool = limit === null ? items : withImage.length >= limit ? withImage : items;
   const count = limit === null ? pool.length : Math.max(1, Math.min(50, Math.floor(limit)));
   return pool.slice(0, count).map(({ id, headline, source, url, image, datetime }) => ({
-    id, headline, source, url, image, datetime,
+    id,
+    headline,
+    source,
+    url,
+    image: /reuters/i.test(source) ? "" : image,
+    datetime,
   }));
 }

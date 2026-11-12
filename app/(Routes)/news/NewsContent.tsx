@@ -124,7 +124,7 @@ export default function NewsContent() {
     watchSymbols,
   ]);
 
-  const pageSize = 11;
+  const pageSize = 6;
   const pageCount = Math.max(1, Math.ceil(filtered.length / pageSize));
   const pageStart = (page - 1) * pageSize;
   const moreStories = filtered.slice(pageStart, pageStart + pageSize);

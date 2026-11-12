@@ -7,7 +7,7 @@ import MarketErrors from "./components/MarketErrors";
 import MarketHeader from "./components/MarketHeader";
 import MarketHoldings from "./components/MarketHoldings";
 import MarketOverview from "./components/MarketOverview";
-import { useMarketData } from "./useMarketData";
+import { useMarketData } from "../../Hooks/useMarketData";
 import type { Filter, Range } from "./market-types";
 
 const EMPTY_POSITIONS: NonNullable<ReturnType<typeof useAccount>>["positions"] =
@@ -89,13 +89,15 @@ export default function Market() {
         onRetry={market.retry}
       />
 
-      <MarketHoldings
-        account={account}
-        holdings={market.holdings}
-        pinnedCount={market.pinnedSymbols.size}
-        quotes={market.quotes}
-        onBrowse={openBrowse}
-      />
+      {account && account.positions.length > 0 && (
+        <MarketHoldings
+          account={account}
+          holdings={market.holdings}
+          pinnedCount={market.pinnedSymbols.size}
+          quotes={market.quotes}
+          onBrowse={openBrowse}
+        />
+      )}
 
       <section ref={browseRef}>
         <MarketBrowser

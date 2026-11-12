@@ -27,7 +27,7 @@ import {
   type IndexKey,
   type MarketRow,
   type Range,
-} from "./market-types";
+} from "../(Routes)/markets/market-types";
 
 const QUOTE_BATCH_SIZE = 5;
 const BATCH_DELAY_MS = 300;

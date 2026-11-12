@@ -95,10 +95,10 @@ export function DashboardActivity({
             )}
           </div>
         ) : (
-          <div className="mt-3 flex min-h-[76px] items-center justify-between gap-4 rounded-md border border-dashed border-elevated px-4 py-3">
+          <div className="mt-3 flex min-h-[76px] items-center justify-between gap-4 rounded-md px-4 py-3">
             <div className="min-w-0">
               <p className="text-[14px] font-medium text-opposite">
-                You have {dec2(cash)} to invest
+                You have dont have any holdings yet
               </p>
               <p className="mt-1 max-w-md text-[13px] leading-relaxed text-content-muted">
                 Pick a stock from the movers list and buy your first share. Your
@@ -139,7 +139,7 @@ export function DashboardActivity({
           </Link>
         </div>
       ) : (
-        <div className="mt-3 rounded-md border border-dashed border-elevated px-4 py-5">
+        <div className="mt-3 rounded-md px-4 py-5">
           <p className="text-[14px] font-medium text-opposite">No orders yet</p>
           <p className="mt-1 text-[13px] text-content-muted">
             Orders you place will appear here.

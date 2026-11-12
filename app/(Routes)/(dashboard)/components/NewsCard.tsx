@@ -50,7 +50,7 @@ export function NewsCard({ news, loading, error, onRetry, className }: Props) {
         </p>
       ) : (
         <div className="flex min-h-0 flex-1 flex-col overflow-y-auto">
-          {news.slice(0, 8).map((item) => (
+          {news.slice(0, 4).map((item) => (
             <a key={item.id} href={item.url} target="_blank" rel="noreferrer"
               className="flex min-h-[62px] flex-1 items-center gap-2.5 border-b border-elevated/80 px-4 py-2.5 text-opposite transition-colors hover:bg-elevated/60 last:border-0">
               <Thumb src={item.image} />

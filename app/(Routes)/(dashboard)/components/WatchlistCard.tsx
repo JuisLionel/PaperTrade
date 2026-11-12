@@ -23,7 +23,7 @@ export function WatchlistCard({ rows, loading, error, onRetry, className }: Prop
         </button>
       </header>
       {error && !rows.length ? (
-        <div className="px-4 py-5 text-[13px] text-danger" role="alert">
+        <div className="px-4 py-5 text-ui-sm text-danger" role="alert">
           {error}
           <button type="button" onClick={onRetry} className="ml-2 underline">
             Retry
@@ -36,18 +36,18 @@ export function WatchlistCard({ rows, loading, error, onRetry, className }: Prop
           ))}
         </div>
       ) : !rows.length ? (
-        <p className="px-4 py-5 text-[13px] text-content-muted">
+        <p className="px-4 py-5 text-ui-sm text-content-muted">
           Nothing on your watchlist yet.
         </p>
       ) : (
         <div>
-          {rows.slice(0, 5).map((row) => (
+          {rows.slice(0, 6).map((row) => (
             <div
               key={row.symbol}
-              className="grid min-h-[47px] grid-cols-[minmax(58px,1fr)_48px_52px_48px] items-center gap-2 border-b border-elevated/80 px-4 py-1.5 last:border-0"
+              className="grid min-h-11.75 grid-cols-[minmax(58px,1fr)_48px_52px_48px] items-center gap-2 border-b border-elevated/80 px-4 py-1.5 last:border-0"
             >
               <span className="min-w-0">
-                <b className="block text-[13px] font-medium text-opposite">
+                <b className="block text-ui-sm font-medium text-opposite">
                   {row.symbol}
                 </b>
                 <span className="block truncate text-[12px] text-content-muted">
@@ -58,11 +58,11 @@ export function WatchlistCard({ rows, loading, error, onRetry, className }: Prop
                 values={row.spark.slice(-10)}
                 up={(row.quote?.changePct ?? 0) >= 0}
               />
-              <span className="text-right text-[13px] tabular-nums text-opposite">
+              <span className="text-right text-ui-sm tabular-nums text-opposite">
                 {row.quote ? dec2(row.quote.price) : "—"}
               </span>
               <span
-                className={`text-right text-[13px] tabular-nums ${row.quote ? toneText(row.quote.changePct) : "text-content-muted"}`}
+                className={`text-right text-ui-sm tabular-nums ${row.quote ? toneText(row.quote.changePct) : "text-content-muted"}`}
               >
                 {row.quote ? signedPct(row.quote.changePct) : "—"}
               </span>

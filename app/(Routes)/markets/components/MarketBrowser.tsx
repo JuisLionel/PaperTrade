@@ -131,14 +131,6 @@ export default function MarketBrowser({
         ),
     },
     {
-      title: "Volume",
-      dataIndex: "volume",
-      align: "right",
-      width: 120,
-      responsive: ["md"],
-      render: () => <span className="text-content-muted">—</span>,
-    },
-    {
       title: "Last 7 days",
       dataIndex: "spark",
       width: "26%",

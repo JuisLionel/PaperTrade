@@ -32,7 +32,6 @@ export type MarketRow = {
   price: number | null;
   change: number | null;
   changePct: number | null;
-  volume: number | null;
   logo: string | null;
   spark: number[];
 };
@@ -141,7 +140,6 @@ export function rowFromAsset(
     price: quote?.c ?? null,
     change: quote?.d ?? null,
     changePct: quote?.dp ?? null,
-    volume: null,
     logo: quote?.logo ?? null,
     spark: history[asset.symbol]?.c ?? [],
   };

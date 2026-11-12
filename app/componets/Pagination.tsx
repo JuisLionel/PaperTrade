@@ -1,63 +1,101 @@
 import Link from "next/link";
+import type { ReactNode } from "react";
 import { HiArrowLeft, HiArrowRight } from "react-icons/hi";
 
-type PaginationProps = {
+type PaginationBaseProps = {
   page: number;
   totalPages: number;
-  hrefForPage: (page: number) => string;
 };
 
-export default function Pagination({
-  page,
-  totalPages,
-  hrefForPage,
-}: PaginationProps) {
+type PaginationProps = PaginationBaseProps &
+  (
+    | { hrefForPage: (page: number) => string; onPageChange?: never }
+    | { hrefForPage?: never; onPageChange: (page: number) => void }
+  );
+
+export default function Pagination(props: PaginationProps) {
+  const { page, totalPages } = props;
   if (totalPages <= 1) return null;
 
   const edge =
     "grid size-10 place-items-center rounded-full text-content-secondary transition hover:bg-elevated hover:text-content";
   const disabled = "pointer-events-none opacity-30";
+  const pageLink = (target: number, content: ReactNode, label?: string) => {
+    const className = `${edge} ${target < 1 || target > totalPages ? disabled : ""}`;
+    if (props.hrefForPage) {
+      return (
+        <Link
+          href={props.hrefForPage(target)}
+          aria-label={label}
+          aria-disabled={target < 1 || target > totalPages}
+          className={className}
+        >
+          {content}
+        </Link>
+      );
+    }
+
+    return (
+      <button
+        type="button"
+        onClick={() => props.onPageChange(Math.min(totalPages, Math.max(1, target)))}
+        disabled={target < 1 || target > totalPages}
+        aria-label={label}
+        className={className}
+      >
+        {content}
+      </button>
+    );
+  };
 
   return (
     <nav
       aria-label="Pagination"
-      className="flex items-center justify-between border-t border-line pt-6"
+      className="flex min-w-0 items-center justify-between gap-2 border-t border-line pt-6"
     >
-      <Link
-        href={hrefForPage(page - 1)}
-        aria-label="Previous page"
-        aria-disabled={page === 1}
-        className={`${edge} ${page === 1 ? disabled : ""}`}
-      >
-        <HiArrowLeft size={16} />
-      </Link>
+      {pageLink(page - 1, <HiArrowLeft size={16} />, "Previous page")}
 
-      <ul className="flex items-center gap-2">
+      <span className="flex items-center gap-2 text-xs text-content-secondary sm:hidden" aria-current="page">
+        <span className="grid size-8 place-items-center rounded-full bg-content font-semibold text-base">
+          {page}
+        </span>
+        <span>of {totalPages}</span>
+      </span>
+
+      <ul className="hidden items-center gap-2 sm:flex">
         {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
           <li key={p}>
-            <Link
-              href={hrefForPage(p)}
-              aria-current={p === page ? "page" : undefined}
-              className={`grid size-8 place-items-center rounded-full text-xs transition ${
-                p === page
-                  ? "bg-content font-semibold text-base"
-                  : "text-content-secondary hover:bg-elevated hover:text-content"
-              }`}
-            >
-              {p}
-            </Link>
+            {props.hrefForPage ? (
+              <Link
+                href={props.hrefForPage(p)}
+                aria-current={p === page ? "page" : undefined}
+                className={`grid size-8 place-items-center rounded-full text-xs transition ${
+                  p === page
+                    ? "bg-content font-semibold text-base"
+                    : "text-content-secondary hover:bg-elevated hover:text-content"
+                }`}
+              >
+                {p}
+              </Link>
+            ) : (
+              <button
+                type="button"
+                onClick={() => props.onPageChange(p)}
+                aria-current={p === page ? "page" : undefined}
+                className={`grid size-8 place-items-center rounded-full text-xs transition ${
+                  p === page
+                    ? "bg-content font-semibold text-base"
+                    : "text-content-secondary hover:bg-elevated hover:text-content"
+                }`}
+              >
+                {p}
+              </button>
+            )}
           </li>
         ))}
       </ul>
 
-      <Link
-        href={hrefForPage(page + 1)}
-        aria-label="Next page"
-        aria-disabled={page === totalPages}
-        className={`${edge} ${page === totalPages ? disabled : ""}`}
-      >
-        <HiArrowRight size={16} />
-      </Link>
+      {pageLink(page + 1, <HiArrowRight size={16} />, "Next page")}
     </nav>
   );
 }

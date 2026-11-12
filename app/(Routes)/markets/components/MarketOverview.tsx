@@ -53,8 +53,8 @@ export default function MarketOverview({
         : null;
 
   return (
-    <section className="mb-8 grid overflow-hidden rounded-md border border-elevated bg-surface lg:grid-cols-[2fr_1fr]">
-      <div className="p-5">
+    <section className="mb-6 grid min-w-0 overflow-hidden rounded-xl border border-elevated bg-surface sm:mb-8 lg:grid-cols-[2fr_1fr]">
+      <div className="p-4 sm:p-5">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
             <div className="text-ui-sm text-content-secondary">S&amp;P 500</div>
@@ -92,7 +92,7 @@ export default function MarketOverview({
         </div>
       </div>
 
-      <ul className="flex flex-col divide-y divide-elevated border-t border-elevated lg:border-t-0 lg:border-l">
+      <ul className="grid min-w-0 grid-cols-2 divide-x divide-y divide-elevated border-t border-elevated lg:flex lg:flex-col lg:divide-x-0 lg:border-l lg:border-t-0">
         {indexList
           .filter((index) => index.key !== "sp500")
           .map((index) => {
@@ -101,9 +101,9 @@ export default function MarketOverview({
             return (
               <li
                 key={index.key}
-                className="flex flex-1 items-center justify-between gap-4 px-5 py-4"
+                className="flex min-w-0 flex-col gap-2 p-3 sm:p-4 lg:flex-1 lg:flex-row lg:items-center lg:justify-between lg:gap-4 lg:px-5 lg:py-4"
               >
-                <div>
+                <div className="min-w-0">
                   <div className="text-ui-sm text-content-secondary">
                     {index.name}
                   </div>
@@ -111,14 +111,14 @@ export default function MarketOverview({
                     {quote?.c != null ? fmt(quote.c) : "—"}
                   </div>
                   <div
-                    className={`text-xs tabular-nums ${quote?.d == null ? "text-content-muted" : tone(quote.d)}`}
+                    className={`hidden text-xs tabular-nums sm:block ${quote?.d == null ? "text-content-muted" : tone(quote.d)}`}
                   >
                     {quote?.d == null
                       ? "—"
                       : `${signed(quote.d, digitsFor(quote.d))} pts`}
                   </div>
                 </div>
-                <div className="flex items-center gap-3">
+                <div className="flex items-center justify-between gap-2 lg:justify-end lg:gap-3">
                   <div className="text-right">
                     <div className="text-[10px] text-content-muted">Today</div>
                     <div
@@ -127,18 +127,20 @@ export default function MarketOverview({
                       {quote?.dp == null ? "—" : signed(quote.dp, 2, "%")}
                     </div>
                   </div>
-                  {indexHistory.length > 1 ? (
-                    <Sparkline
-                      data={indexHistory}
-                      positive={(quote?.dp ?? 0) >= 0}
-                      width={64}
-                      height={22}
-                    />
-                  ) : (
-                    <span className="w-16 text-right text-xs text-content-muted">
-                      —
-                    </span>
-                  )}
+                  <span className="hidden lg:block">
+                    {indexHistory.length > 1 ? (
+                      <Sparkline
+                        data={indexHistory}
+                        positive={(quote?.dp ?? 0) >= 0}
+                        width={64}
+                        height={22}
+                      />
+                    ) : (
+                      <span className="w-16 text-right text-xs text-content-muted">
+                        —
+                      </span>
+                    )}
+                  </span>
                 </div>
               </li>
             );

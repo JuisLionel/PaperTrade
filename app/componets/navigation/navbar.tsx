@@ -367,12 +367,12 @@ export default function Navbar({
           {isUserMenuOpen && (
             <div className="absolute right-0 top-[calc(100%+8px)] z-50 w-48 rounded-md border border-border bg-surface p-1">
               <Link
-                href="/wallet"
+                href="/portfolio"
                 onClick={() => setIsUserMenuOpen(false)}
                 className="flex h-9 items-center gap-2 rounded px-2 text-ui-sm text-content-secondary no-underline transition-colors duration-[120ms] hover:bg-elevated hover:text-content"
               >
                 <Wallet size={16} strokeWidth={1.7} />
-                My Wallet
+                My Portfolio
               </Link>
               <Link
                 href="/deposit"

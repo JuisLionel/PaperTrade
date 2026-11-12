@@ -13,9 +13,9 @@ export default function Portfolio() {
   }).format(100);
 
   return (
-    <main className="min-w-0 flex-1 bg-base p-4 sm:p-6">
-      <header className="mb-6">
-        <h1 className="text-2xl font-semibold text-base-content">Portfolio</h1>
+    <main className="min-w-0 flex-1 bg-base p-3 sm:p-6">
+      <header className="mb-5 sm:mb-6">
+        <h1 className="text-xl font-semibold text-base-content sm:text-2xl">Portfolio</h1>
         <p className="mt-1 text-sm text-content-muted">
           Your simulated account and investments
         </p>
@@ -23,7 +23,7 @@ export default function Portfolio() {
 
       <section
         aria-label="Portfolio summary"
-        className="grid gap-3 sm:grid-cols-2"
+        className="grid gap-2 sm:grid-cols-2 sm:gap-3"
       >
         <article className="rounded-xl border border-elevated bg-surface p-5">
           <p className="text-sm text-content-muted">Portfolio value</p>
@@ -45,7 +45,7 @@ export default function Portfolio() {
 
       <section
         aria-labelledby="portfolio-holdings-heading"
-        className="mt-3 rounded-xl border border-elevated bg-surface p-5"
+        className="mt-3 rounded-xl border border-elevated bg-surface p-4 sm:p-5"
       >
         <h2
           id="portfolio-holdings-heading"

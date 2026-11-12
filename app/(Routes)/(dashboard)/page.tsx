@@ -111,26 +111,26 @@ export default function Home() {
   }).format(new Date());
 
   return (
-    <main className="dashboard-scale flex min-h-[calc(100dvh-3.5rem)] min-w-0 flex-1 flex-col bg-base px-4 py-4 sm:px-5 sm:py-5">
+    <main className="dashboard-scale flex min-h-[calc(100dvh-3.5rem)] min-w-0 flex-1 flex-col bg-base px-3 py-3 sm:px-5 sm:py-5">
       <div className="flex w-full flex-1 flex-col">
-        <div className="mb-4 flex shrink-0 items-end justify-between">
+        <div className="mb-4 flex shrink-0 items-center justify-between gap-3">
           <div>
             <p className="text-[12px] uppercase tracking-[0.12em] text-content-muted">
               {today}
             </p>
-            <h1 className="mt-1 font-display text-[26px] font-semibold leading-none text-opposite">
+            <h1 className="mt-1 font-display text-[24px] font-semibold leading-none text-opposite sm:text-[26px]">
               Dashboard
             </h1>
           </div>
           <Link
             href="/markets"
-            className="inline-flex h-9 items-center rounded-md bg-content px-3 text-[13px] font-semibold text-base transition-opacity hover:opacity-85"
+            className="inline-flex min-h-10 shrink-0 items-center justify-center rounded-full bg-content px-3.5 text-[13px] font-semibold text-base transition-opacity hover:opacity-85"
           >
             + New order
           </Link>
         </div>
 
-        <div className="flex min-h-[520px] flex-1 flex-col overflow-hidden rounded-lg border border-elevated bg-surface">
+        <div className="flex min-h-[420px] flex-1 flex-col overflow-hidden rounded-xl border border-elevated bg-surface sm:min-h-[520px]">
           <div className="grid min-h-0 min-w-0 flex-1 lg:grid-cols-[minmax(0,2.2fr)_minmax(280px,0.86fr)]">
             <div className="min-w-0">
               <HeroCard

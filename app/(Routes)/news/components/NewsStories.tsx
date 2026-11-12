@@ -91,7 +91,7 @@ function FeaturedStory({ item }: { item: NewsItem }) {
       href={item.url}
       target="_blank"
       rel="noreferrer"
-      className="card group relative min-h-75 overflow-hidden bg-surface transition-colors sm:min-h-95"
+      className="card group relative min-h-64 overflow-hidden bg-surface transition-colors sm:min-h-95"
     >
       <NewsImage
         src={item.image}
@@ -160,7 +160,7 @@ function LatestStories({ items }: { items: NewsItem[] }) {
 function MoreStories({ items }: { items: NewsItem[] }) {
   return (
     <section
-      className="mt-6 border-t border-elevated pt-5"
+      className="mt-5 border-t border-elevated pt-4 sm:mt-6 sm:pt-5"
       aria-labelledby="more-news-heading"
     >
       <h2

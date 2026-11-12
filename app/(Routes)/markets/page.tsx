@@ -59,7 +59,7 @@ export default function Market() {
   };
 
   return (
-    <main className="min-h-screen bg-base px-6 py-6 lg:px-8">
+    <main className="min-h-screen min-w-0 bg-base px-3 py-4 sm:px-5 sm:py-6 lg:px-8">
       <MarketHeader
         query={query}
         searchRef={searchRef}

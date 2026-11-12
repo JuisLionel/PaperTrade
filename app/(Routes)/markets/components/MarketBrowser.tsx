@@ -1,6 +1,6 @@
 "use client";
 
-import { ConfigProvider, Table } from "antd";
+import { ConfigProvider, Pagination, Table } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import { BsFillPinAngleFill, BsPinAngle } from "react-icons/bs";
 import Sparkline from "@/app/(Routes)/markets/components/Sparkline";
@@ -68,6 +68,8 @@ export default function MarketBrowser({
   onPageChange,
   onTogglePin,
 }: MarketBrowserProps) {
+  const pageCount = Math.max(1, Math.ceil(data.length / PAGE_SIZE));
+  const mobileRows = data.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
   const columns: ColumnsType<MarketRow> = [
     {
       title: "Symbol",
@@ -202,34 +204,126 @@ export default function MarketBrowser({
         </p>
       )}
       <ConfigProvider theme={tableTheme}>
-        <Table<MarketRow>
-          className="market-browser-table mt-2"
-          rowKey="symbol"
-          columns={columns}
-          dataSource={data}
-          pagination={{
-            current: page,
-            pageSize: PAGE_SIZE,
-            total: data.length,
-            showSizeChanger: false,
-            onChange: onPageChange,
-          }}
-          tableLayout="fixed"
-          rowClassName={() => "group"}
-          locale={{
-            emptyText: symbolsError
-              ? "Market symbols could not be loaded. Retry to try again."
-              : quotesError && !data.some((row) => row.price !== null)
-                ? "Live quotes are unavailable. Retry to try again."
-                : query
-                  ? `No match for "${query}". Try a ticker like AAPL.`
-                  : filter === "Pinned"
-                    ? "Nothing pinned yet. Click the pin on any row to pin it."
-                    : filter === "Gainers" || filter === "Losers"
-                      ? "No S&P 500 movers are available yet."
-                      : "No symbols match this filter.",
-          }}
-        />
+        <>
+          <div className="mt-3 space-y-2 md:hidden">
+            {mobileRows.map((row) => {
+              const pinned = pinnedSymbols.has(row.symbol);
+              return (
+                <article
+                  key={row.symbol}
+                  className="rounded-xl bg-transparent p-3"
+                >
+                  <div className="flex items-center gap-3">
+                    <button
+                      type="button"
+                      onClick={() => onTogglePin(row)}
+                      aria-label={`${pinned ? "Unpin" : "Pin"} ${row.symbol}`}
+                      className="grid size-9 shrink-0 place-items-center rounded-full text-content-muted hover:bg-elevated hover:text-content"
+                    >
+                      {pinned ? (
+                        <BsFillPinAngleFill className="text-content" />
+                      ) : (
+                        <BsPinAngle />
+                      )}
+                    </button>
+                    {row.logo ? (
+                      <img
+                        src={row.logo}
+                        alt=""
+                        className="size-9 shrink-0 rounded-lg bg-elevated object-contain p-1"
+                      />
+                    ) : (
+                      <div className="grid size-9 shrink-0 place-items-center rounded-lg bg-elevated text-xs font-semibold text-content-secondary">
+                        {row.symbol.slice(0, 2)}
+                      </div>
+                    )}
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-sm font-semibold text-opposite">
+                        {row.symbol}
+                      </p>
+                      <p className="truncate text-xs text-content-muted">
+                        {row.name}
+                      </p>
+                    </div>
+                    <div className="shrink-0 text-right">
+                      <p className="text-sm font-semibold tabular-nums text-opposite">
+                        {row.price === null
+                          ? "—"
+                          : `$${fmt(row.price, digitsFor(row.price))}`}
+                      </p>
+                      <p
+                        className={`text-xs tabular-nums ${
+                          row.changePct === null
+                            ? "text-content-muted"
+                            : tone(row.changePct)
+                        }`}
+                      >
+                        {row.changePct === null
+                          ? "—"
+                          : signed(row.changePct, 2, "%")}
+                      </p>
+                    </div>
+                  </div>
+                </article>
+              );
+            })}
+          </div>
+          {data.length === 0 && (
+            <div className="rounded-xl border border-elevated bg-surface px-4 py-8 text-center text-sm text-content-muted md:hidden">
+              {symbolsError
+                ? "Market symbols could not be loaded. Retry to try again."
+                : quotesError
+                  ? "Live quotes are unavailable. Retry to try again."
+                  : query
+                    ? `No match for "${query}". Try a ticker like AAPL.`
+                    : filter === "Pinned"
+                      ? "Nothing pinned yet. Click the pin on any row to pin it."
+                      : filter === "Gainers" || filter === "Losers"
+                        ? "No S&P 500 movers are available yet."
+                        : "No symbols match this filter."}
+            </div>
+          )}
+          {pageCount > 1 && (
+            <div className="flex justify-center border-t border-elevated py-4 md:hidden">
+              <Pagination
+                simple
+                current={page}
+                pageSize={PAGE_SIZE}
+                total={data.length}
+                showSizeChanger={false}
+                onChange={onPageChange}
+              />
+            </div>
+          )}
+          <Table<MarketRow>
+            className="market-browser-table mt-2 hidden md:block"
+            rowKey="symbol"
+            columns={columns}
+            dataSource={data}
+            pagination={{
+              current: page,
+              pageSize: PAGE_SIZE,
+              total: data.length,
+              showSizeChanger: false,
+              onChange: onPageChange,
+            }}
+            tableLayout="fixed"
+            rowClassName={() => "group"}
+            locale={{
+              emptyText: symbolsError
+                ? "Market symbols could not be loaded. Retry to try again."
+                : quotesError && !data.some((row) => row.price !== null)
+                  ? "Live quotes are unavailable. Retry to try again."
+                  : query
+                    ? `No match for "${query}". Try a ticker like AAPL.`
+                    : filter === "Pinned"
+                      ? "Nothing pinned yet. Click the pin on any row to pin it."
+                      : filter === "Gainers" || filter === "Losers"
+                        ? "No S&P 500 movers are available yet."
+                        : "No symbols match this filter.",
+            }}
+          />
+        </>
       </ConfigProvider>
     </section>
   );

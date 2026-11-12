@@ -174,8 +174,8 @@ export default function MarketHoldings({
   ];
 
   return (
-    <section className="mb-8">
-      <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
+    <section className="mb-6 sm:mb-8">
+      <div className="mb-3 flex flex-wrap items-end justify-between gap-3 sm:mb-4">
         <div>
           <h2 className="text-ui-base font-semibold text-opposite">
             My holdings
@@ -187,12 +187,12 @@ export default function MarketHoldings({
         </div>
 
         {account && account.positions.length > 0 && (
-          <div className="text-right">
+          <div className="w-full text-left sm:w-auto sm:text-right">
             <div className="font-display text-ui-xl font-semibold tabular-nums text-opposite">
               {holdings.complete ? `$${fmt(holdings.value)}` : "—"}
             </div>
             {holdings.complete && (
-              <div className="mt-1 flex justify-end gap-4 text-xs tabular-nums">
+              <div className="mt-1 flex flex-wrap justify-start gap-x-4 gap-y-1 text-xs tabular-nums sm:justify-end">
                 <span className={tone(holdings.day)}>
                   {money(holdings.day)}{" "}
                   <span className="text-content-muted">today</span>
@@ -266,16 +266,85 @@ export default function MarketHoldings({
             </div>
           )}
 
-          <ConfigProvider theme={tableTheme}>
-            <Table<Position>
-              rowKey="symbol"
-              columns={holdingColumns}
-              dataSource={holdings.rows.map((row) => row.position)}
-              pagination={false}
-              tableLayout="fixed"
-              rowClassName={() => "group"}
-            />
-          </ConfigProvider>
+          <div className="space-y-2 md:hidden">
+            {holdings.rows.map(({ position }) => {
+              const quote = quotes.get(position.symbol);
+              const price = quote?.c;
+              const value = price == null ? null : position.shares * price;
+              const returnAmount =
+                price == null
+                  ? null
+                  : (price - position.avgCost) * position.shares;
+              const returnPct =
+                price == null || position.avgCost <= 0
+                  ? null
+                  : (price / position.avgCost - 1) * 100;
+              return (
+                <article
+                  key={position.symbol}
+                  className="rounded-xl border border-elevated bg-surface p-3"
+                >
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="font-semibold text-opposite">
+                        {position.symbol}
+                      </p>
+                      <p className="truncate text-xs text-content-muted">
+                        {fmt(position.shares, 4).replace(/\.?0+$/, "")} shares
+                        {" · "}avg ${fmt(position.avgCost, digitsFor(position.avgCost))}
+                      </p>
+                    </div>
+                    <div className="shrink-0 text-right">
+                      <p className="font-semibold tabular-nums text-opposite">
+                        {value == null ? "—" : `$${fmt(value)}`}
+                      </p>
+                      <p className="text-xs tabular-nums text-content-muted">
+                        {price == null
+                          ? "—"
+                          : `$${fmt(price, digitsFor(price))} last`}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="mt-3 flex items-center justify-between border-t border-elevated pt-2 text-xs">
+                    <span className="text-content-muted">Today</span>
+                    <span
+                      className={
+                        quote?.dp == null
+                          ? "text-content-muted"
+                          : tone(quote.dp)
+                      }
+                    >
+                      {quote?.dp == null ? "—" : signed(quote.dp, 2, "%")}
+                    </span>
+                    <span className="text-content-muted">Return</span>
+                    <span
+                      className={
+                        returnAmount == null
+                          ? "text-content-muted"
+                          : tone(returnAmount)
+                      }
+                    >
+                      {returnPct == null || returnAmount == null
+                        ? "—"
+                        : `${signed(returnPct, 2, "%")} (${money(returnAmount)})`}
+                    </span>
+                  </div>
+                </article>
+              );
+            })}
+          </div>
+          <div className="hidden md:block">
+            <ConfigProvider theme={tableTheme}>
+              <Table<Position>
+                rowKey="symbol"
+                columns={holdingColumns}
+                dataSource={holdings.rows.map((row) => row.position)}
+                pagination={false}
+                tableLayout="fixed"
+                rowClassName={() => "group"}
+              />
+            </ConfigProvider>
+          </div>
         </>
       )}
     </section>

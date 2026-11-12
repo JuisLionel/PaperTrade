@@ -34,12 +34,12 @@ export function HeroCard({ summary, stale, range, onRange, points, curve }: Prop
 
   return (
     <section className="overflow-hidden border-b border-elevated bg-surface">
-      <div className="grid gap-6 p-5 min-[760px]:grid-cols-[210px_minmax(0,1fr)] min-[1050px]:grid-cols-[230px_minmax(0,1fr)] min-[761px]:gap-6 min-[900px]:p-6">
+      <div className="grid gap-5 p-4 min-[760px]:grid-cols-[210px_minmax(0,1fr)] min-[1050px]:grid-cols-[230px_minmax(0,1fr)] min-[761px]:gap-6 min-[900px]:p-6">
         <div className="min-w-0">
           <p className="text-ui-base text-content-muted">Portfolio value</p>
           {summary ? (
             <>
-              <p className="font-display my-2 whitespace-nowrap text-[52px] font-medium leading-none tracking-[-0.04em] text-opposite tabular-nums min-[900px]:text-[62px]">
+              <p className="font-display my-2 whitespace-nowrap text-[42px] font-medium leading-none tracking-[-0.04em] text-opposite tabular-nums sm:text-[52px] min-[900px]:text-[62px]">
                 {whole}.<span className="text-opposite">{cents}</span>
               </p>
               <div className="inline-flex items-center gap-2 rounded-full border border-elevated px-2.5 py-1 text-ui-sm">
@@ -48,7 +48,7 @@ export function HeroCard({ summary, stale, range, onRange, points, curve }: Prop
                 <span className="text-content-muted">profit</span>
                 <span className={toneText(summary.totalReturn)}>{signedPct(summary.totalReturnPct)}</span>
               </div>
-              <div className="mt-5 grid grid-cols-3 gap-3">
+              <div className="mt-5 grid grid-cols-2 gap-3">
                 <Stat
                   label="Today"
                   value={signedUsd(summary.dayPnl)}
@@ -75,13 +75,14 @@ export function HeroCard({ summary, stale, range, onRange, points, curve }: Prop
         </div>
 
         <div className="w-full min-w-0">
-          <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
+          <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
             <span className="flex items-center gap-1.5 text-ui-sm text-content-muted">
               <i className="size-1.5 rounded-full bg-content" />
               Portfolio
             </span>
             <Segmented
-              className="bg-elevated! text-ui-sm [&_.ant-segmented-item-label]:min-h-8! [&_.ant-segmented-item-label]:px-2! [&_.ant-segmented-item-selected]:bg-content! [&_.ant-segmented-item-selected]:text-base! [&_.ant-segmented-item:hover]:text-opposite!"
+              block
+              className="w-full bg-elevated! text-ui-sm sm:w-auto [&_.ant-segmented-item-label]:!flex [&_.ant-segmented-item-label]:!h-8 [&_.ant-segmented-item-label]:!items-center [&_.ant-segmented-item-label]:!justify-center [&_.ant-segmented-item-label]:!px-1.5 sm:[&_.ant-segmented-item-label]:!px-2 [&_.ant-segmented-item-label]:!leading-none [&_.ant-segmented-item-selected]:bg-content! [&_.ant-segmented-item-selected]:text-base! [&_.ant-segmented-item:hover]:text-opposite!"
               shape="round"
               size="small"
               options={RANGES}

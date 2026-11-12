@@ -149,8 +149,8 @@ export default function NewsContent() {
   };
 
   return (
-    <main className="flex min-h-[calc(100dvh-3.5rem)] w-full flex-1 bg-base px-4 py-5 sm:px-6 lg:px-8">
-      <div className="grid w-full flex-1 gap-6 lg:grid-cols-[190px_minmax(0,1fr)]">
+    <main className="flex min-h-[calc(100dvh-3.5rem)] min-w-0 w-full flex-1 bg-base px-3 py-4 sm:px-5 sm:py-5 lg:px-8">
+      <div className="grid w-full min-w-0 flex-1 gap-4 sm:gap-6 lg:grid-cols-[190px_minmax(0,1fr)]">
         <NewsFilters
           query={query}
           sources={sources}

@@ -23,7 +23,7 @@ export function DashboardActivity({
     .slice(0, 5);
 
   return (
-    <section className="min-h-[255px] px-5 pb-5 pt-4 min-[900px]:px-6">
+    <section className="min-h-[220px] px-3 pb-4 pt-4 sm:px-5 sm:pb-5 min-[900px]:px-6">
       <div className="flex items-center gap-5 border-b border-elevated">
         {(["Holdings", "Orders"] as const).map((value) => (
           <button
@@ -45,7 +45,31 @@ export function DashboardActivity({
 
       {tab === "Holdings" ? (
         rows.length ? (
-          <div className="overflow-x-auto">
+          <div>
+            <div className="mt-2 divide-y divide-elevated/70 sm:hidden">
+              {rows.slice(0, 6).map((row) => (
+                <div
+                  key={row.symbol}
+                  className="flex items-center justify-between gap-3 py-3"
+                >
+                  <div className="min-w-0">
+                    <p className="font-semibold text-opposite">{row.symbol}</p>
+                    <p className="truncate text-xs text-content-muted">
+                      {row.shares} shares · avg {dec2(row.avgCost)}
+                    </p>
+                  </div>
+                  <div className="shrink-0 text-right">
+                    <p className="text-sm font-medium tabular-nums text-opposite">
+                      {dec2(row.marketValue)}
+                    </p>
+                    <p className={`text-xs tabular-nums ${toneText(row.dayPct)}`}>
+                      {signedPct(row.dayPct)} today
+                    </p>
+                  </div>
+                </div>
+              ))}
+            </div>
+            <div className="hidden overflow-x-auto sm:block">
             <table className="mt-1 w-full min-w-[510px] text-left text-[14px]">
               <thead className="text-[12px] uppercase tracking-wide text-content-muted">
                 <tr>
@@ -85,6 +109,7 @@ export function DashboardActivity({
                 ))}
               </tbody>
             </table>
+            </div>
             {rows.length > 6 && (
               <Link
                 href="/portfolio"
@@ -118,15 +143,15 @@ export function DashboardActivity({
           {recentOrders.map((order) => (
             <div
               key={order.id}
-              className="flex flex-nowrap items-center justify-between gap-3 whitespace-nowrap py-3 text-[14px]"
+              className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 py-3 text-[14px]"
             >
-              <span className="font-medium capitalize text-opposite">
+              <span className="min-w-0 font-medium capitalize text-opposite">
                 {order.side} {order.symbol}
               </span>
-              <span className="text-content-muted">
+              <span className="ml-auto text-content-muted">
                 {order.qty} × {dec2(order.price)}
               </span>
-              <span className="capitalize text-content-secondary">
+              <span className="w-full text-xs capitalize text-content-secondary sm:w-auto sm:text-sm">
                 {order.status}
               </span>
             </div>

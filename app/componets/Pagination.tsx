@@ -56,7 +56,7 @@ export default function Pagination(props: PaginationProps) {
       {pageLink(page - 1, <HiArrowLeft size={16} />, "Previous page")}
 
       <span className="flex items-center gap-2 text-xs text-content-secondary sm:hidden" aria-current="page">
-        <span className="grid size-8 place-items-center rounded-full bg-content font-semibold text-base">
+        <span className="grid size-8 place-items-center rounded-full border-0 bg-content font-semibold text-[var(--color-base)]">
           {page}
         </span>
         <span>of {totalPages}</span>
@@ -71,8 +71,8 @@ export default function Pagination(props: PaginationProps) {
                 aria-current={p === page ? "page" : undefined}
                 className={`grid size-8 place-items-center rounded-full text-xs transition ${
                   p === page
-                    ? "bg-content font-semibold text-base"
-                    : "text-content-secondary hover:bg-elevated hover:text-content"
+                    ? "border-0 bg-content font-semibold text-[var(--color-base)]"
+                    : "text-content-secondary hover:bg-elevated hover:text-content!"
                 }`}
               >
                 {p}
@@ -84,7 +84,7 @@ export default function Pagination(props: PaginationProps) {
                 aria-current={p === page ? "page" : undefined}
                 className={`grid size-8 place-items-center rounded-full text-xs transition ${
                   p === page
-                    ? "bg-content font-semibold text-base"
+                    ? "border-0 bg-content font-semibold text-[var(--color-base)]"
                     : "text-content-secondary hover:bg-elevated hover:text-content"
                 }`}
               >

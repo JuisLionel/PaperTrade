@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { routeError } from "@/lib/route-error";
 import { parseSymbols } from "@/lib/symbols";
-import { getSeries } from "@/lib/providers/twelvedata";
+import { getSeries } from "@/lib/providers/alpaca";
 import type { CandlesResponse, Interval } from "@/types/trading";
 
 export async function GET(req: Request) {

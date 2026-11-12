@@ -208,7 +208,7 @@ export async function GET(request: NextRequest) {
     try {
       const response = await finnhub<FinnhubSearchResponse>(
         "/search",
-        { q: query },
+        { q: query, exchange: "US" },
         SEARCH_REVALIDATE,
       );
       if (!Array.isArray(response.result)) {

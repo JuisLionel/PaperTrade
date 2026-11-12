@@ -31,7 +31,11 @@ type MarketBrowserProps = {
 };
 
 const tableTheme = {
-  token: { colorBgContainer: "transparent" },
+  token: {
+    colorBgContainer: "transparent",
+    colorPrimary: "var(--color-content)",
+    colorPrimaryHover: "var(--color-content)",
+  },
   components: {
     Table: {
       headerBg: "transparent",
@@ -40,6 +44,11 @@ const tableTheme = {
       borderColor: "var(--color-elevated)",
       rowHoverBg: "var(--color-surface)",
       cellPaddingBlock: 12,
+    },
+    Pagination: {
+      itemActiveBg: "var(--color-content)",
+      itemActiveColor: "var(--color-base)",
+      itemActiveColorHover: "var(--color-base)",
     },
   },
 };
@@ -194,7 +203,7 @@ export default function MarketBrowser({
       )}
       <ConfigProvider theme={tableTheme}>
         <Table<MarketRow>
-          className="mt-2"
+          className="market-browser-table mt-2"
           rowKey="symbol"
           columns={columns}
           dataSource={data}

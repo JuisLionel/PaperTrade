@@ -112,3 +112,13 @@ body {
   -ms-user-select: none;
   user-select: none;
 }
+
+.market-browser-table .ant-pagination .ant-pagination-item-active,
+.market-browser-table .ant-pagination .ant-pagination-item-active:hover {
+  border: 0;
+  background-color: var(--color-content);
+}
+
+.market-browser-table .ant-pagination .ant-pagination-item-active a {
+  color: var(--color-base);
+}

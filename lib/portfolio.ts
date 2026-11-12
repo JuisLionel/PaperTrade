@@ -64,6 +64,17 @@ export function buildEquityCurve(args: {
   liveTotal?: number;
 }): CurvePoint[] {
   const { range, account, daily, intraday, liveTotal } = args;
+  const firstTrade = account.orders
+    .filter((order) => order.status === "filled")
+    .map((order) => Date.parse(order.createdAt))
+    .filter(Number.isFinite)
+    .reduce<number | null>(
+      (earliest, timestamp) =>
+        earliest === null || timestamp < earliest ? timestamp : earliest,
+      null,
+    );
+  if (firstTrade === null) return [];
+
   const src = range === "1D" ? intraday : daily;
   const bench = src["SPY"];
   const held = account.positions.filter((p) => src[p.symbol]);
@@ -72,6 +83,17 @@ export function buildEquityCurve(args: {
   const L = Math.min(bench.c.length, ...held.map((p) => src[p.symbol].c.length));
   const times = bench.t.slice(-L);
   if (L < 2) return [];
+
+  const firstTradeDate = new Date(firstTrade).toISOString().slice(0, 10);
+  const firstTradeBar = times.findIndex((time) =>
+    range === "1D"
+      ? Date.parse(time) >= firstTrade
+      : time.slice(0, 10) >= firstTradeDate,
+  );
+  if (firstTradeBar < 0 && firstTradeDate > times[L - 1].slice(0, 10)) {
+    return [];
+  }
+  const tradeStart = firstTradeBar < 0 ? 0 : firstTradeBar;
 
   let start = 0;
   if (range === "1D") {
@@ -83,6 +105,7 @@ export function buildEquityCurve(args: {
   } else if (range !== "ALL") {
     start = Math.max(0, L - BARS[range]);
   }
+  start = Math.max(start, tradeStart);
 
   const now = new Date();
   const nowTimestamp = localTimestamp(now);

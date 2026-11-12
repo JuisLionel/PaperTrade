@@ -10,7 +10,7 @@ import { buildEquityCurve, buildHoldingRows, buildSummary } from "@/lib/portfoli
 import type { Asset } from "@/lib/client/markets";
 import type { RangeKey, WatchItem } from "@/types/trading";
 import { DashboardActivity } from "./components/DashboardActivity";
-import { DashboardIndices } from "./components/DashboardIndices";
+import { DashboardSummary } from "./components/DashboardSummary";
 import { HeroCard } from "./components/HeroCard";
 import { NewsCard } from "./components/NewsCard";
 import { WatchlistCard, type WatchRow } from "./components/WatchlistCard";
@@ -130,45 +130,44 @@ export default function Home() {
           </Link>
         </div>
 
-        <div className="flex min-h-[420px] flex-1 flex-col overflow-hidden rounded-xl border border-elevated bg-surface sm:min-h-[520px]">
-          <div className="grid min-h-0 min-w-0 flex-1 lg:grid-cols-[minmax(0,2.2fr)_minmax(280px,0.86fr)]">
-            <div className="min-w-0">
-              <HeroCard
-                summary={pricesLoading ? null : summary}
-                stale={!!dash.error && !dash.data}
-                range={range}
-                onRange={setRange}
-                points={points}
-                curve={{
-                  loading: !account || curveSrc.loading,
-                  error: curveSrc.error && !curveSrc.data ? curveSrc.error : null,
-                  onRetry: curveSrc.reload,
-                }}
-              />
-              <DashboardIndices history={daily.data?.series ?? {}} />
-              <DashboardActivity
-                rows={rows}
-                orders={account?.orders ?? []}
-                cash={account?.cash ?? 100}
-              />
-            </div>
-            <aside className="flex min-w-0 flex-col border-t border-elevated lg:border-l lg:border-t-0">
-              <WatchlistCard
-                className="min-w-0"
-                rows={watchRows}
-                loading={pricesLoading}
-                error={dash.error}
-                onRetry={dash.reload}
-              />
-              <NewsCard
-                className="min-w-0 flex-1"
-                news={newsResource.data ?? []}
-                loading={newsResource.loading && !newsResource.data}
-                error={newsResource.error}
-                onRetry={newsResource.reload}
-              />
-            </aside>
+        <div>
+          <DashboardSummary summary={summary} loading={pricesLoading} />
+        </div>
+
+        <div className="mt-4 grid min-w-0 flex-1 content-start gap-4 lg:grid-cols-[minmax(0,1.8fr)_minmax(280px,0.8fr)] lg:items-stretch">
+          <div className="flex min-w-0 flex-col gap-4 lg:h-full">
+            <HeroCard
+              range={range}
+              onRange={setRange}
+              points={points}
+              hasTrades={account?.orders.some((order) => order.status === "filled") ?? false}
+              curve={{
+                loading: !account || curveSrc.loading,
+                error: curveSrc.error && !curveSrc.data ? curveSrc.error : null,
+                onRetry: curveSrc.reload,
+              }}
+            />
+            <DashboardActivity
+              rows={rows}
+              orders={account?.orders ?? []}
+            />
           </div>
+          <aside className="flex min-w-0 flex-col gap-4 lg:h-full">
+            <WatchlistCard
+              className="min-w-0"
+              rows={watchRows}
+              loading={pricesLoading}
+              error={dash.error}
+              onRetry={dash.reload}
+            />
+            <NewsCard
+              className="min-w-0 lg:flex-1"
+              news={newsResource.data ?? []}
+              loading={newsResource.loading && !newsResource.data}
+              error={newsResource.error}
+              onRetry={newsResource.reload}
+            />
+          </aside>
         </div>
       </div>
     </main>

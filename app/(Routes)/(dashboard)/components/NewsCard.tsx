@@ -22,13 +22,13 @@ interface Props { news: NewsItem[]; loading: boolean; error: string | null; onRe
 
 export function NewsCard({ news, loading, error, onRetry, className }: Props) {
   return (
-    <section className={`flex min-h-0 flex-col ${className ?? ""}`}>
-      <header className="flex shrink-0 items-center justify-between border-y border-elevated px-4 py-3">
-        <h2 className="text-[12px] font-medium uppercase tracking-[0.12em] text-content-muted">
+    <section className={`flex min-h-0 flex-col overflow-hidden rounded-xl border border-elevated bg-surface ${className ?? ""}`}>
+      <header className="flex shrink-0 items-center justify-between border-b border-elevated px-4 py-3">
+        <h2 className="text-sm font-semibold !text-[var(--color-opposite)] sm:text-base">
           Market news
         </h2>
-        <a href="/news" className="text-[12px] text-content-muted hover:text-content">
-          View all →
+        <a href="/news" className="text-xs text-content-muted hover:text-content">
+          View all
         </a>
       </header>
       {error && !news.length ? (

@@ -11,11 +11,9 @@ type ActivityTab = "Holdings" | "Orders";
 export function DashboardActivity({
   rows,
   orders,
-  cash,
 }: {
   rows: HoldingRow[];
   orders: Order[];
-  cash: number;
 }) {
   const [tab, setTab] = useState<ActivityTab>("Holdings");
   const recentOrders = [...orders]
@@ -23,24 +21,29 @@ export function DashboardActivity({
     .slice(0, 5);
 
   return (
-    <section className="min-h-[220px] px-3 pb-4 pt-4 sm:px-5 sm:pb-5 min-[900px]:px-6">
-      <div className="flex items-center gap-5 border-b border-elevated">
-        {(["Holdings", "Orders"] as const).map((value) => (
-          <button
-            key={value}
-            type="button"
-            role="tab"
-            aria-selected={tab === value}
-            onClick={() => setTab(value)}
-            className={`border-b-2 px-0.5 pb-2 text-[14px] ${
-              tab === value
-                ? "border-content font-semibold text-opposite"
-                : "border-transparent text-content-muted hover:text-opposite"
-            }`}
-          >
-            {value}
-          </button>
-        ))}
+    <section className="min-h-[220px] min-w-0 overflow-hidden rounded-xl border border-elevated bg-surface px-3 pb-4 pt-4 sm:px-5 sm:pb-5 lg:flex-1">
+      <div className="mb-1 flex flex-wrap items-center justify-between gap-3 border-b border-elevated">
+        <h2 className="pb-2 text-sm font-semibold !text-[var(--color-opposite)] sm:text-base">
+          Recent activity
+        </h2>
+        <div className="flex items-center gap-5" role="tablist" aria-label="Activity type">
+          {(["Holdings", "Orders"] as const).map((value) => (
+            <button
+              key={value}
+              type="button"
+              role="tab"
+              aria-selected={tab === value}
+              onClick={() => setTab(value)}
+              className={`border-b-2 px-0.5 pb-2 text-[13px] ${
+                tab === value
+                  ? "border-content font-semibold text-opposite"
+                  : "border-transparent text-content-muted hover:text-opposite"
+              }`}
+            >
+              {value}
+            </button>
+          ))}
+        </div>
       </div>
 
       {tab === "Holdings" ? (

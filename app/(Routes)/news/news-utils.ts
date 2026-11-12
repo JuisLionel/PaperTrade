@@ -59,6 +59,11 @@ const POSITIVE_TERMS = [
   "upgrade",
   "rally",
   "profit",
+  "hope",
+  "peace",
+  "ceasefire",
+  "de-escalation",
+  "easing",
 ];
 const NEGATIVE_TERMS = [
   "fall",

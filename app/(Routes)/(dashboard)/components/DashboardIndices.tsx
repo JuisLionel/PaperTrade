@@ -55,7 +55,7 @@ export function DashboardIndices({
   return (
     <section
       aria-label="Market indexes"
-      className="grid grid-cols-1 divide-y divide-elevated border-b border-elevated sm:grid-cols-3 sm:divide-x sm:divide-y-0"
+      className="grid grid-cols-3 gap-2 sm:gap-3"
     >
       {indexes.map((index) => {
         const quote = data?.quotes[index.key];
@@ -63,20 +63,22 @@ export function DashboardIndices({
         return (
           <div
             key={index.key}
-            className="flex items-center justify-between gap-3 px-4 py-3"
+            className="flex min-w-0 items-center justify-between gap-2 rounded-xl border border-elevated bg-surface px-2.5 py-3 sm:gap-3 sm:px-4"
           >
             <div className="min-w-0">
-              <p className="text-[13px] text-content-muted">{index.name}</p>
-              <p className="mt-0.5 text-[18px] font-medium leading-tight text-opposite tabular-nums">
+              <p className="truncate text-[11px] text-content-muted sm:text-[13px]">{index.name}</p>
+              <p className="mt-0.5 truncate text-[14px] font-medium leading-tight text-opposite tabular-nums sm:text-[18px]">
                 {quote ? fmt(quote.c ?? 0) : "—"}
               </p>
               <p
-                className={`text-[13px] tabular-nums ${quote?.dp == null ? "text-content-muted" : toneText(quote.dp)}`}
+                className={`truncate text-[11px] tabular-nums sm:text-[13px] ${quote?.dp == null ? "text-content-muted" : toneText(quote.dp)}`}
               >
                 {quote?.dp == null ? "—" : signedPct(quote.dp)}
               </p>
             </div>
-            <Sparkline values={series.slice(-12)} up={(quote?.dp ?? 0) >= 0} />
+            <div className="hidden shrink-0 sm:block">
+              <Sparkline values={series.slice(-12)} up={(quote?.dp ?? 0) >= 0} />
+            </div>
           </div>
         );
       })}

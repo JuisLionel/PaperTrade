@@ -40,12 +40,12 @@ export function EquityChart({ points, range }: { points: CurvePoint[]; range: Ra
   return (
     <div>
       <div className="flex gap-3">
-        <div className="flex h-[120px] flex-col justify-between text-right text-[13px] text-content-muted tabular-nums min-[761px]:h-[140px] min-[761px]:text-[14px]">
+        <div className="flex h-[160px] flex-col justify-between text-right text-[12px] text-content-muted tabular-nums sm:h-[190px] sm:text-[13px]">
           {geo.ticks.map((t) => <span key={t}>{compactUsd(t)}</span>)}
         </div>
 
         <div
-          className="relative h-[120px] min-w-0 flex-1 min-[761px]:h-[140px]"
+          className="relative h-[160px] min-w-0 flex-1 sm:h-[190px]"
           onMouseMove={(e) => {
             const r = e.currentTarget.getBoundingClientRect();
             const ratio = Math.min(1, Math.max(0, (e.clientX - r.left) / r.width));
@@ -81,7 +81,7 @@ export function EquityChart({ points, range }: { points: CurvePoint[]; range: Ra
         </div>
       </div>
 
-      <div className="mt-2 flex justify-between pl-[42px] text-[13px] text-content-muted min-[761px]:pl-[48px] min-[761px]:text-[14px]">
+      <div className="mt-2 flex justify-between pl-[42px] text-[11px] text-content-muted sm:pl-[48px] sm:text-[12px]">
         {dots.map((i) => <span key={i}>{label(points[i].t, range)}</span>)}
       </div>
     </div>

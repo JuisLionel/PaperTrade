@@ -9,17 +9,17 @@ interface Props { rows: WatchRow[]; loading: boolean; error: string | null; onRe
 
 export function WatchlistCard({ rows, loading, error, onRetry, className }: Props) {
   return (
-    <section className={className}>
+    <section className={`overflow-hidden rounded-xl border border-elevated bg-surface ${className ?? ""}`}>
       <header className="flex items-center justify-between border-b border-elevated px-4 py-3">
-        <h2 className="text-[12px] font-medium uppercase tracking-[0.12em] text-content-muted">
-          Biggest movers
+        <h2 className="text-sm font-semibold !text-[var(--color-opposite)] sm:text-base">
+          Top movers
         </h2>
         <button
           type="button"
           onClick={() => window.dispatchEvent(new Event(OPEN_WATCHLIST_EVENT))}
-          className="text-[12px] text-content-muted hover:text-content"
+          className="text-xs text-content-muted hover:text-content"
         >
-          Watchlist →
+          Watchlist
         </button>
       </header>
       {error && !rows.length ? (

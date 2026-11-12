@@ -1,6 +1,7 @@
 import type { Account } from "@/types/trading";
 
 export const STORAGE_KEY = "papertradeaccount";
+export const ACCOUNT_UPDATED_EVENT = "papertrade:account-updated";
 const LEGACY_STORAGE_KEY = "papertrade:account";
 
 export const SEED_ACCOUNT: Account = {
@@ -47,6 +48,29 @@ export function saveAccount(account: Account) {
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(account));
   } catch {}
+}
+
+export function addVirtualFunds(amount: number): void {
+  if (!Number.isFinite(amount) || amount <= 0) {
+    throw new Error("Enter an amount greater than zero.");
+  }
+
+  const account = loadAccount();
+  const updatedAccount = {
+    ...account,
+    cash: account.cash + amount,
+    startingBalance: account.startingBalance + amount,
+  };
+  if (!Number.isFinite(updatedAccount.cash) || !Number.isFinite(updatedAccount.startingBalance)) {
+    throw new Error("That amount is too large to add.");
+  }
+
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(updatedAccount));
+  } catch {
+    throw new Error("Could not add money to your paper account. Please try again.");
+  }
+  window.dispatchEvent(new Event(ACCOUNT_UPDATED_EVENT));
 }
 
 export function loadAccount(): Account {

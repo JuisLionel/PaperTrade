@@ -252,7 +252,7 @@ export default function MarketBrowser({
               <img
                 src={row.logo}
                 alt=""
-                className="h-8 w-8 rounded-sm bg-elevated object-contain p-1"
+                className="h-8 w-8 rounded-sm bg-elevated object-cover"
               />
             ) : (
               <div className="flex h-8 w-8 items-center justify-center rounded-sm bg-elevated text-[11px] font-semibold text-content-secondary">
@@ -385,7 +385,7 @@ export default function MarketBrowser({
                       <img
                         src={row.logo}
                         alt=""
-                        className="size-9 shrink-0 rounded-lg bg-elevated object-contain p-1"
+                        className="size-9 shrink-0 rounded-lg bg-elevated object-cover"
                       />
                     ) : (
                       <div className="grid size-9 shrink-0 place-items-center rounded-lg bg-elevated text-xs font-semibold text-content-secondary">

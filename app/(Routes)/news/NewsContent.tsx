@@ -22,7 +22,7 @@ import {
 } from "./news-utils";
 
 export default function NewsContent() {
-  const account = useAccount();
+  const { account, error: accountError, refresh: refreshAccount } = useAccount();
   const news = useResource(fetchNewsFeed, "news-feed", { refreshMs: 120_000 });
   const router = useRouter();
   const pathname = usePathname();
@@ -168,6 +168,21 @@ export default function NewsContent() {
           onPeriodChange={changePeriod}
         />
         <section className="min-w-0">
+          {accountError && (
+            <div
+              className="mb-3 flex flex-wrap items-center justify-between gap-2 rounded-lg border border-danger/30 bg-danger/10 px-4 py-3 text-sm text-danger"
+              role="alert"
+            >
+              <span>{accountError}</span>
+              <button
+                type="button"
+                onClick={() => void refreshAccount()}
+                className="font-medium underline"
+              >
+                Retry
+              </button>
+            </div>
+          )}
           <NewsStories
             error={news.error && !news.data ? news.error : null}
             loading={now === null || (news.loading && !news.data)}

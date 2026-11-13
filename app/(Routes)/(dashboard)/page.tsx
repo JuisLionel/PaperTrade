@@ -5,8 +5,17 @@ import Link from "next/link";
 import { useAccount } from "@/app/Hooks/useAccount";
 import { useResource } from "@/app/Hooks/useResource";
 import { fetchCandles, fetchDashboard, fetchMarketNews } from "@/lib/api/dashboard";
-import { PINNED_ASSETS_CHANGED_EVENT, readPinnedAssets } from "@/lib/client/watchlist-storage";
-import { buildEquityCurve, buildHoldingRows, buildSummary } from "@/lib/portfolio";
+import {
+  PINNED_ASSETS_CHANGED_EVENT,
+  readPinnedAssets,
+  syncPinnedAssets,
+} from "@/lib/client/watchlist-storage";
+import {
+  buildEquityCurve,
+  buildHoldingRows,
+  buildSummary,
+  getTodayTradeSymbols,
+} from "@/lib/portfolio";
 import type { Asset } from "@/lib/client/markets";
 import type { RangeKey, WatchItem } from "@/types/trading";
 import { DashboardActivity } from "./components/DashboardActivity";
@@ -25,7 +34,12 @@ const topStocks: WatchItem[] = [
 ];
 
 export default function Home() {
-  const account = useAccount();
+  const {
+    account,
+    loading: accountLoading,
+    error: accountError,
+    refresh: refreshAccount,
+  } = useAccount();
   const [range, setRange] = useState<RangeKey>("1M");
   const [pinnedAssets, setPinnedAssets] = useState<Asset[]>([]);
 
@@ -38,6 +52,9 @@ export default function Home() {
       }
     };
     refreshPins();
+    void syncPinnedAssets().catch((error: unknown) => {
+      console.error("Failed to sync dashboard watchlist from Alpaca:", error);
+    });
     window.addEventListener(PINNED_ASSETS_CHANGED_EVENT, refreshPins);
     return () => window.removeEventListener(PINNED_ASSETS_CHANGED_EVENT, refreshPins);
   }, []);
@@ -48,9 +65,13 @@ export default function Home() {
   }, [pinnedAssets]);
 
   const held = useMemo(() => account?.positions.map((p) => p.symbol) ?? [], [account]);
+  const todayTradeSymbols = useMemo(
+    () => (account ? getTodayTradeSymbols(account) : []),
+    [account],
+  );
   const quoteSymbols = useMemo(
-    () => unique([...held, ...watchItems.map((item) => item.symbol)]),
-    [held, watchItems],
+    () => unique([...held, ...todayTradeSymbols, ...watchItems.map((item) => item.symbol)]),
+    [held, todayTradeSymbols, watchItems],
   );
   const candleSymbols = useMemo(
     () => unique([...held, "SPY", "QQQ", "DIA", ...watchItems.slice(0, 5).map((item) => item.symbol)]),
@@ -74,7 +95,10 @@ export default function Home() {
     () => (account ? buildHoldingRows(account.positions, quotes ?? {}, daily.data?.series ?? {}) : []),
     [account, quotes, daily.data],
   );
-  const summary = useMemo(() => (account ? buildSummary(account, rows) : null), [account, rows]);
+  const summary = useMemo(
+    () => (account ? buildSummary(account, rows, quotes ?? {}) : null),
+    [account, rows, quotes],
+  );
   const points = useMemo(
     () =>
       account
@@ -103,7 +127,8 @@ export default function Home() {
     [watchItems, quotes, daily.data],
   );
 
-  const pricesLoading = !account || (dash.loading && !dash.data);
+  const pricesLoading =
+    accountLoading || !account || (dash.loading && !dash.data);
   const today = new Intl.DateTimeFormat("en-US", {
     weekday: "long",
     month: "short",
@@ -130,6 +155,22 @@ export default function Home() {
           </Link>
         </div>
 
+        {accountError && (
+          <div
+            className="mb-3 flex flex-wrap items-center justify-between gap-2 rounded-lg border border-danger/30 bg-danger/10 px-4 py-3 text-sm text-danger"
+            role="alert"
+          >
+            <span>{accountError}</span>
+            <button
+              type="button"
+              onClick={() => void refreshAccount()}
+              className="font-medium underline"
+            >
+              Retry
+            </button>
+          </div>
+        )}
+
         <div>
           <DashboardSummary summary={summary} loading={pricesLoading} />
         </div>
@@ -142,7 +183,7 @@ export default function Home() {
               points={points}
               hasTrades={account?.orders.some((order) => order.status === "filled") ?? false}
               curve={{
-                loading: !account || curveSrc.loading,
+                loading: accountLoading || !account || curveSrc.loading,
                 error: curveSrc.error && !curveSrc.data ? curveSrc.error : null,
                 onRetry: curveSrc.reload,
               }}

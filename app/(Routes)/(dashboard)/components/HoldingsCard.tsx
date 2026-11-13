@@ -18,11 +18,11 @@ const columns: TableColumnsType<HoldingRow> = [
   { title: "7D", key: "spark", align: "center", render: (_, r) => <Sparkline values={r.spark} up={r.dayPct >= 0 || r.spark.at(-1)! >= r.spark[0]} /> },
   { title: "Value", dataIndex: "marketValue", align: "right", defaultSortOrder: "descend",
     sorter: (a, b) => a.marketValue - b.marketValue, render: (v) => <span className="tabular-nums text-opposite">{dec2(v)}</span> },
-  { title: "Total P&L", dataIndex: "pnl", align: "right", sorter: (a, b) => a.pnl - b.pnl,
+  { title: "Unrealized P&L", dataIndex: "unrealizedPnl", align: "right", sorter: (a, b) => a.unrealizedPnl - b.unrealizedPnl,
     render: (_, r) => (
-      <div className={`tabular-nums ${toneText(r.pnl)}`}>
-        <div>{signedUsd(r.pnl)}</div>
-        <div className="text-[14px] opacity-80">{signedPct(r.pnlPct)}</div>
+      <div className={`tabular-nums ${toneText(r.unrealizedPnl)}`}>
+        <div>{signedUsd(r.unrealizedPnl)}</div>
+        <div className="text-[14px] opacity-80">{signedPct(r.unrealizedPnlPct)}</div>
       </div>
     ) },
 ];

@@ -12,7 +12,6 @@ import {
   LayoutDashboard,
   Newspaper,
   X,
-  Settings,
   Star,
 } from "lucide-react";
 import { Fragment, useEffect, useState } from "react";
@@ -26,6 +25,7 @@ import {
   OPEN_WATCHLIST_EVENT,
   PINNED_ASSETS_CHANGED_EVENT,
   readPinnedAssets,
+  syncPinnedAssets,
 } from "@/lib/client/watchlist-storage";
 import WatchlistPanel from "../watchlist-panel";
 
@@ -81,11 +81,20 @@ export default function Sidebar({
     const handlePinnedAssetsChanged = (event: Event) => {
       updateAssets((event as CustomEvent<Asset[]>).detail);
     };
+    const refreshFromAlpaca = () => {
+      void syncPinnedAssets(true)
+        .then(updateAssets)
+        .catch((error: unknown) => {
+          console.error("Failed to sync sidebar watchlist from Alpaca:", error);
+        });
+    };
 
     window.addEventListener(
       PINNED_ASSETS_CHANGED_EVENT,
       handlePinnedAssetsChanged,
     );
+    window.addEventListener("focus", refreshFromAlpaca);
+    const interval = window.setInterval(refreshFromAlpaca, 60_000);
     void Promise.resolve().then(() => {
       try {
         const pinned = readPinnedAssets();
@@ -93,9 +102,12 @@ export default function Sidebar({
       } catch (error) {
         console.error("Failed to load sidebar watchlist:", error);
       }
+      if (active) refreshFromAlpaca();
     });
     return () => {
       active = false;
+      window.clearInterval(interval);
+      window.removeEventListener("focus", refreshFromAlpaca);
       window.removeEventListener(
         PINNED_ASSETS_CHANGED_EVENT,
         handlePinnedAssetsChanged,
@@ -365,29 +377,6 @@ export default function Sidebar({
             })}
           </ul>
 
-          <div className="mt-auto px-2 pb-3">
-            <Link
-              title={isCollapsed ? "Settings" : undefined}
-              href="/settings"
-              aria-current={isActive("/settings") ? "page" : undefined}
-              className={navClass(isActive("/settings"))}
-              onClick={onNavigate}
-            >
-              <Settings
-                aria-hidden="true"
-                size={18}
-                strokeWidth={1.7}
-                className="shrink-0"
-              />
-              <span
-                className={`min-w-0 overflow-hidden whitespace-nowrap transition-[max-width,opacity] duration-200 ease-in-out motion-reduce:transition-none ${
-                  isCollapsed ? "max-w-0 opacity-0" : "max-w-24 opacity-100"
-                } ${mobile ? "!text-opposite" : ""}`}
-              >
-                Settings
-              </span>
-            </Link>
-          </div>
         </nav>
         </aside>
         {mobile && (

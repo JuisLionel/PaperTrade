@@ -8,13 +8,10 @@ import {
   CircleCheck,
   Info,
   Moon,
-  Settings,
   Sun,
   Trash2,
   TriangleAlert,
   UserRound,
-  Wallet,
-  ArrowDownToLine,
   Menu,
 } from "lucide-react";
 import {
@@ -22,9 +19,15 @@ import {
   type Quote,
 } from "@/lib/client/markets";
 import {
+  fetchAlpacaMarketClock,
+  fetchAlpacaOrders,
+} from "@/lib/api/alpaca";
+import {
+  observeAlpacaOrders,
   subscribeToNotifications,
   type AppNotification,
 } from "@/lib/client/notifications";
+import type { MarketClock } from "@/types/trading";
 
 type Theme = "dark" | "light";
 type IndexKey = "sp500" | "btc" | "dow";
@@ -41,6 +44,17 @@ const formatChange = (value: number | null | undefined) =>
     ? `${value >= 0 ? "+" : ""}${value.toFixed(2)}%`
     : "—";
 
+const formatMarketTime = (value: string) => {
+  const date = new Date(value);
+  if (!Number.isFinite(date.getTime())) return "an unknown time";
+  return new Intl.DateTimeFormat("en-US", {
+    hour: "numeric",
+    minute: "2-digit",
+    timeZone: "America/New_York",
+    timeZoneName: "short",
+  }).format(date);
+};
+
 export default function Navbar({
   onOpenNavigation,
 }: {
@@ -48,17 +62,22 @@ export default function Navbar({
 }) {
   const [theme, setTheme] = useState<Theme>("dark");
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
-  const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
+  const [latestNotification, setLatestNotification] =
+    useState<AppNotification | null>(null);
+  const [marketClock, setMarketClock] = useState<MarketClock | null>(null);
+  const [marketClockLoading, setMarketClockLoading] = useState(true);
+  const [marketClockError, setMarketClockError] = useState<string | null>(null);
   const [indices, setIndices] = useState<IndexData[]>(
     indexList.map(({ key, name }) => ({ key, name, quote: null })),
   );
   const [indicesLoading, setIndicesLoading] = useState(true);
   const [indicesError, setIndicesError] = useState<string | null>(null);
   const notificationsRef = useRef<HTMLDivElement>(null);
-  const userMenuRef = useRef<HTMLDivElement>(null);
+  const notificationToastTimer = useRef<number | null>(null);
   const seenFinnhubNotifications = useRef(new Set<string>());
+  const lastOrderMonitorError = useRef<string | null>(null);
   const hasManualTheme = useRef(false);
 
   useEffect(() => {
@@ -84,14 +103,30 @@ export default function Navbar({
   }, []);
 
   useEffect(() => {
-    return subscribeToNotifications((notification) => {
+    const unsubscribe = subscribeToNotifications((notification) => {
       if (notification.type === "finnhub" && notification.symbol) {
         if (seenFinnhubNotifications.current.has(notification.symbol)) return;
         seenFinnhubNotifications.current.add(notification.symbol);
       }
       setNotifications((current) => [notification, ...current].slice(0, 20));
       setUnreadCount((count) => count + 1);
+      if (notification.type === "purchase") {
+        setLatestNotification(notification);
+        if (notificationToastTimer.current !== null) {
+          window.clearTimeout(notificationToastTimer.current);
+        }
+        notificationToastTimer.current = window.setTimeout(
+          () => setLatestNotification(null),
+          6_000,
+        );
+      }
     });
+    return () => {
+      unsubscribe();
+      if (notificationToastTimer.current !== null) {
+        window.clearTimeout(notificationToastTimer.current);
+      }
+    };
   }, []);
 
   useEffect(() => {
@@ -136,6 +171,82 @@ export default function Navbar({
   }, []);
 
   useEffect(() => {
+    let active = true;
+    let request: AbortController | null = null;
+
+    const loadMarketClock = async () => {
+      request?.abort();
+      const currentRequest = new AbortController();
+      request = currentRequest;
+      try {
+        const clock = await fetchAlpacaMarketClock(currentRequest.signal);
+        if (!active) return;
+        setMarketClock(clock);
+        setMarketClockError(null);
+      } catch (error) {
+        if (!active || currentRequest.signal.aborted) return;
+        const message =
+          error instanceof Error
+            ? error.message
+            : "Could not load US market hours.";
+        console.error("Failed to load US market hours:", error);
+        setMarketClock(null);
+        setMarketClockError(message);
+      } finally {
+        if (active && !currentRequest.signal.aborted) {
+          setMarketClockLoading(false);
+        }
+      }
+    };
+
+    void loadMarketClock();
+    const interval = window.setInterval(() => void loadMarketClock(), 60_000);
+    return () => {
+      active = false;
+      window.clearInterval(interval);
+      request?.abort();
+    };
+  }, []);
+
+  useEffect(() => {
+    let active = true;
+    let request: AbortController | null = null;
+
+    const checkOrderUpdates = async () => {
+      request?.abort();
+      const currentRequest = new AbortController();
+      request = currentRequest;
+      try {
+        const orders = await fetchAlpacaOrders(currentRequest.signal);
+        if (!active || currentRequest.signal.aborted) return;
+        observeAlpacaOrders(orders);
+        lastOrderMonitorError.current = null;
+      } catch (error) {
+        if (!active || currentRequest.signal.aborted) return;
+        const message =
+          error instanceof Error
+            ? error.message
+            : "Could not check Alpaca order status.";
+        if (lastOrderMonitorError.current !== message) {
+          console.error("Failed to check Alpaca order status:", error);
+          lastOrderMonitorError.current = message;
+        }
+      }
+    };
+
+    void checkOrderUpdates();
+    const interval = window.setInterval(
+      () => void checkOrderUpdates(),
+      30_000,
+    );
+    return () => {
+      active = false;
+      window.clearInterval(interval);
+      request?.abort();
+    };
+  }, []);
+
+  useEffect(() => {
     if (!isNotificationsOpen) return;
 
     const closeOnOutsideClick = (event: PointerEvent) => {
@@ -157,20 +268,6 @@ export default function Navbar({
     };
   }, [isNotificationsOpen]);
 
-  useEffect(() => {
-    if (!isUserMenuOpen) return;
-    const closeOnOutsideClick = (event: PointerEvent) => {
-      if (
-        event.target instanceof Node &&
-        !userMenuRef.current?.contains(event.target)
-      ) {
-        setIsUserMenuOpen(false);
-      }
-    };
-    document.addEventListener("pointerdown", closeOnOutsideClick);
-    return () => document.removeEventListener("pointerdown", closeOnOutsideClick);
-  }, [isUserMenuOpen]);
-
   const toggleTheme = () => {
     const nextTheme = theme === "dark" ? "light" : "dark";
     document.documentElement.dataset.theme = nextTheme;
@@ -190,6 +287,26 @@ export default function Navbar({
     if (notification.type === "finnhub") return TriangleAlert;
     return Info;
   };
+  const marketStatusLabel = marketClock
+    ? marketClock.isOpen
+      ? "Market open"
+      : "Market closed"
+    : marketClockLoading
+      ? "Checking market"
+      : "Market status unavailable";
+  const marketStatusTitle = marketClock
+    ? `Market ${marketClock.isOpen ? "open" : "closed"}. ${marketClock.isOpen ? "Closes" : "Opens"
+    } at ${formatMarketTime(
+      marketClock.isOpen ? marketClock.nextClose : marketClock.nextOpen,
+    )}.`
+    : marketClockError ?? "Checking official market hours.";
+  const marketStatusTone = marketClock
+    ? marketClock.isOpen
+      ? "border-success/30 bg-success/10 text-success"
+      : "border-border bg-surface text-content-secondary"
+    : marketClockError
+      ? "border-danger/30 bg-danger/10 text-danger"
+      : "border-border bg-surface text-content-muted";
 
   return (
     <header className="sticky top-0 z-20 flex h-14 shrink-0 items-center gap-2 border-b border-border bg-base px-3 sm:gap-4 sm:px-4">
@@ -200,7 +317,38 @@ export default function Navbar({
         onClick={onOpenNavigation}
         className="!hidden !size-9 !shrink-0 !items-center !justify-center !p-0 !text-content-secondary max-[760px]:!inline-flex"
       />
-      <div className="min-w-0 flex-1" />
+      <div className="min-w-0 flex-1" >
+        <div
+          role="status"
+          aria-label={marketStatusLabel}
+          title={marketStatusTitle}
+          className={`inline-flex h-8 items-center gap-1.5 rounded-md border px-2 text-ui-sm sm:gap-2 sm:px-2.5 ${marketStatusTone}`}
+        >
+          <span
+            aria-hidden="true"
+            className={`size-1.5 shrink-0 rounded-full ${marketClock
+                ? marketClock.isOpen
+                  ? "bg-success"
+                  : "bg-content-muted"
+                : marketClockError
+                  ? "bg-danger"
+                  : "bg-content-muted"
+              }`}
+          />
+          <span className="hidden whitespace-nowrap sm:inline">
+            {marketStatusLabel}
+          </span>
+          <span className="whitespace-nowrap sm:hidden">
+            {marketClock
+              ? marketClock.isOpen
+                ? "Open"
+                : "Closed"
+              : marketClockError
+                ? "Unavailable"
+                : "…"}
+          </span>
+        </div>
+      </div>
 
       <div className="flex shrink-0 items-center gap-2">
         {indices.map(({ key, name, quote }, index) => {
@@ -230,10 +378,10 @@ export default function Navbar({
               <span className="whitespace-nowrap tabular-nums">{price}</span>
               <span
                 className={`whitespace-nowrap tabular-nums ${typeof change !== "number"
-                    ? "text-content-muted"
-                    : positive
-                      ? "text-green-500"
-                      : "text-red-500"
+                  ? "text-content-muted"
+                  : positive
+                    ? "text-green-500"
+                    : "text-red-500"
                   }`}
               >
                 {formatChange(change)}
@@ -282,7 +430,7 @@ export default function Navbar({
             <section
               id="notifications-panel"
               aria-label="Notifications"
-              className="absolute right-0 top-[calc(100%+10px)] z-50 flex max-h-[min(34rem,calc(100vh-72px))] w-[min(400px,calc(100vw-24px))] flex-col overflow-hidden rounded-lg border border-border bg-surface"
+              className="absolute right-0 top-[calc(100%+10px)] z-50 flex max-h-[min(34rem,calc(100vh-72px))] w-[min(400px,calc(100vw-24px))] flex-col overflow-hidden rounded-lg border border-border bg-elevated shadow-xl"
             >
               <div className="flex h-11 shrink-0 items-center justify-between border-b border-border px-3.5">
                 <h2 className="text-ui-sm font-medium text-content-secondary">
@@ -315,10 +463,10 @@ export default function Navbar({
                         <Icon
                           aria-hidden="true"
                           className={`mt-0.5 ${notification.type === "purchase"
-                              ? "text-green-500"
-                              : notification.type === "finnhub"
-                                ? "text-red-500"
-                                : "text-content-muted"
+                            ? "text-green-500"
+                            : notification.type === "finnhub"
+                              ? "text-red-500"
+                              : "text-content-muted"
                             }`}
                           size={17}
                         />
@@ -352,50 +500,39 @@ export default function Navbar({
           )}
         </div>
 
-        <div ref={userMenuRef} className="relative">
-          <button
-            type="button"
-            className="grid size-[34px] place-items-center rounded-md text-content-secondary transition-colors duration-[120ms] hover:bg-elevated hover:text-content"
-            aria-label="Account menu"
-            aria-expanded={isUserMenuOpen}
-            onClick={() => setIsUserMenuOpen((open) => !open)}
-          >
-            <span className="grid size-[30px] place-items-center rounded-md border border-border bg-surface text-content-secondary">
-              <UserRound size={16} strokeWidth={1.7} aria-hidden="true" />
-            </span>
-          </button>
-          {isUserMenuOpen && (
-            <div className="absolute right-0 top-[calc(100%+8px)] z-50 w-48 rounded-md border border-border bg-surface p-1">
-              <Link
-                href="/portfolio"
-                onClick={() => setIsUserMenuOpen(false)}
-                className="flex h-9 items-center gap-2 rounded px-2 text-ui-sm text-content-secondary no-underline transition-colors duration-[120ms] hover:bg-elevated hover:text-content"
-              >
-                <Wallet size={16} strokeWidth={1.7} />
-                My Portfolio
-              </Link>
-              <Link
-                href="/deposit"
-                onClick={() => setIsUserMenuOpen(false)}
-                className="flex h-9 items-center gap-2 rounded px-2 text-ui-sm text-content-secondary no-underline transition-colors duration-[120ms] hover:bg-elevated hover:text-content"
-              >
-                <ArrowDownToLine size={16} strokeWidth={1.7} />
-                Deposit
-              </Link>
-              <div className="my-1 border-t border-border" />
-              <Link
-                href="/settings"
-                onClick={() => setIsUserMenuOpen(false)}
-                className="flex h-9 items-center gap-2 rounded px-2 text-ui-sm text-content-secondary no-underline transition-colors duration-[120ms] hover:bg-elevated hover:text-content"
-              >
-                <Settings size={16} strokeWidth={1.7} />
-                Settings
-              </Link>
-            </div>
-          )}
-        </div>
+        <Link
+          href="/portfolio"
+          className="grid size-[34px] place-items-center rounded-md text-content-secondary transition-colors duration-[120ms] hover:bg-elevated hover:text-content"
+          aria-label="My Portfolio"
+          title="My Portfolio"
+        >
+          <span className="grid size-[30px] place-items-center rounded-md border border-border bg-surface text-content-secondary">
+            <UserRound size={16} strokeWidth={1.7} aria-hidden="true" />
+          </span>
+        </Link>
       </div>
 
+      {latestNotification?.type === "purchase" && (
+        <div
+          role="status"
+          aria-live="polite"
+          className="fixed bottom-4 right-4 z-[60] flex max-w-[min(24rem,calc(100vw-2rem))] items-start gap-3 rounded-lg border border-success/30 bg-surface px-4 py-3 text-content shadow-xl"
+        >
+          <CircleCheck
+            aria-hidden="true"
+            className="mt-0.5 shrink-0 text-success"
+            size={18}
+          />
+          <div>
+            <p className="m-0 text-sm font-medium text-opposite">
+              {latestNotification.title}
+            </p>
+            <p className="mb-0 mt-1 text-sm text-content-muted">
+              {latestNotification.message}
+            </p>
+          </div>
+        </div>
+      )}
     </header>
   );
 }

@@ -12,8 +12,8 @@ import {
 } from "@/lib/client/markets";
 import {
   PINNED_ASSETS_CHANGED_EVENT,
-  readPinnedAssets,
-  writePinnedAssets,
+  savePinnedAssets,
+  syncPinnedAssets,
 } from "@/lib/client/watchlist-storage";
 import type { Position, Series } from "@/types/trading";
 import {
@@ -102,23 +102,30 @@ export function useMarketData({
   }, [refresh]);
 
   useEffect(() => {
-    const syncPins = () => {
-      try {
-        setPinnedAssets(readPinnedAssets());
-        setPinError(null);
-      } catch (error) {
-        setPinError(errorMessage(error));
-      }
+    const refreshPins = () => {
+      void syncPinnedAssets(true)
+        .then((assets) => {
+          setPinnedAssets(assets);
+          setPinError(null);
+        })
+        .catch((error: unknown) => {
+          setPinError(errorMessage(error));
+        });
     };
     const onPinsChanged = (event: Event) => {
       const detail = (event as CustomEvent<Asset[]>).detail;
       setPinnedAssets(detail);
       setPinError(null);
     };
-    void Promise.resolve().then(syncPins);
+    refreshPins();
+    const interval = window.setInterval(refreshPins, 60_000);
+    window.addEventListener("focus", refreshPins);
     window.addEventListener(PINNED_ASSETS_CHANGED_EVENT, onPinsChanged);
-    return () =>
+    return () => {
+      window.clearInterval(interval);
+      window.removeEventListener("focus", refreshPins);
       window.removeEventListener(PINNED_ASSETS_CHANGED_EVENT, onPinsChanged);
+    };
   }, []);
 
   useEffect(() => {
@@ -165,10 +172,10 @@ export function useMarketData({
     if (symbolsLoading) return;
     const controller = new AbortController();
     const candidateSymbols = candidateKey ? candidateKey.split(",") : [];
-    const symbols =
-      filter === "Gainers" || filter === "Losers"
-        ? candidateSymbols
-        : candidateSymbols.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+    const symbols = candidateSymbols.slice(
+      (page - 1) * PAGE_SIZE,
+      page * PAGE_SIZE,
+    );
     const holdingSymbols = holdingKey ? holdingKey.split(",") : [];
     const requested = [...new Set([...symbols, ...holdingSymbols])];
     if (!requested.length) return;
@@ -200,7 +207,7 @@ export function useMarketData({
       }
     })();
     return () => controller.abort();
-  }, [candidateKey, filter, holdingKey, page, refresh, symbolsLoading]);
+  }, [candidateKey, holdingKey, page, refresh, symbolsLoading]);
 
   const candidateRows = useMemo(
     () =>
@@ -209,25 +216,7 @@ export function useMarketData({
       ),
     [candidates, history, quotes, sp500Symbols],
   );
-  const data = useMemo(() => {
-    const movers =
-      filter === "Gainers"
-        ? candidateRows.filter((row) => row.change !== null && row.change > 0)
-        : filter === "Losers"
-          ? candidateRows.filter((row) => row.change !== null && row.change < 0)
-          : candidateRows;
-    if (filter === "Gainers") {
-      return [...movers].sort(
-        (a, b) => (b.changePct ?? -Infinity) - (a.changePct ?? -Infinity),
-      );
-    }
-    if (filter === "Losers") {
-      return [...movers].sort(
-        (a, b) => (a.changePct ?? Infinity) - (b.changePct ?? Infinity),
-      );
-    }
-    return movers;
-  }, [candidateRows, filter]);
+  const data = candidateRows;
   const visibleRows = data.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
   const historyKey = visibleRows
     .filter((row) => !row.symbol.includes(":"))
@@ -285,12 +274,17 @@ export function useMarketData({
     [positions, quotes],
   );
 
-  const togglePin = (row: MarketRow) => {
-    const next = pinnedSymbols.has(row.symbol)
-      ? pinnedAssets.filter((asset) => asset.symbol !== row.symbol)
-      : [...pinnedAssets, { symbol: row.symbol, name: row.name, kind: row.kind }];
+  const togglePin = async (row: MarketRow) => {
     try {
-      writePinnedAssets(next);
+      const current = await syncPinnedAssets(true);
+      const next = current.some((asset) => asset.symbol === row.symbol)
+        ? current.filter((asset) => asset.symbol !== row.symbol)
+        : [
+            ...current,
+            { symbol: row.symbol, name: row.name, kind: row.kind },
+          ];
+      const saved = await savePinnedAssets(next);
+      setPinnedAssets(saved);
       setPinError(null);
     } catch (error) {
       setPinError(errorMessage(error));

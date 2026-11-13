@@ -9,12 +9,17 @@ import MarketHoldings from "./components/MarketHoldings";
 import MarketOverview from "./components/MarketOverview";
 import { useMarketData } from "../../Hooks/useMarketData";
 import type { Filter, Range } from "./market-types";
+import type { Position } from "@/types/trading";
 
-const EMPTY_POSITIONS: NonNullable<ReturnType<typeof useAccount>>["positions"] =
-  [];
+const EMPTY_POSITIONS: Position[] = [];
 
 export default function Market() {
-  const account = useAccount();
+  const {
+    account,
+    loading: accountLoading,
+    error: accountError,
+    refresh: refreshAccount,
+  } = useAccount();
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState<Filter>("All");
   const [cryptoSub, setCryptoSub] = useState("All crypto");
@@ -81,13 +86,22 @@ export default function Market() {
 
       <MarketErrors
         errors={[
+          accountError,
           market.symbolsError,
           market.quotesError,
           market.indexError,
           market.pinError,
         ]}
-        onRetry={market.retry}
+        onRetry={() => {
+          market.retry();
+          void refreshAccount();
+        }}
       />
+      {accountLoading && (
+        <p className="mb-3 text-sm text-content-muted">
+          Connecting to your Alpaca paper account…
+        </p>
+      )}
 
       {account && account.positions.length > 0 && (
         <MarketHoldings
@@ -117,6 +131,8 @@ export default function Market() {
           onFilterChange={changeFilter}
           onPageChange={setPage}
           onTogglePin={market.togglePin}
+          account={account}
+          onAccountRefresh={refreshAccount}
         />
       </section>
     </main>

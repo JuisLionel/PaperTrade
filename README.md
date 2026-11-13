@@ -21,9 +21,12 @@ Open [http://localhost:3000](http://localhost:3000) with your browser to see the
 Set these server-side environment variables in `.env.local`:
 
 - `FINNHUB_KEY` for US stock symbols, quotes, and news.
-- `APCA_API_KEY_ID` and `APCA_API_SECRET_KEY` for historical stock candles from Alpaca's IEX feed.
+- `APCA_API_KEY_ID` and `APCA_API_SECRET_KEY` for Alpaca IEX candles and Alpaca paper trading.
 
 Keep API credentials out of client-side code and source control.
+The trading routes always use Alpaca's paper endpoint and reject non-local hosts. Use paper-account credentials and keep this app private; it has no user sign-in.
+Market pins sync with the dedicated `PaperTrade` watchlist in Alpaca. If it does not exist, the app creates it and seeds it with the browser's saved pins; subsequent pin changes are written to Alpaca and remote changes refresh while the app is open. The app's Binance USDT crypto symbols may be rejected if Alpaca does not support that pair in watchlists.
+The navbar shows US market hours from Alpaca and checks paper orders every 30 seconds for fills. Filled orders trigger an in-app notification while the app is open; this is not a push notification when the browser is closed.
 
 You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
 

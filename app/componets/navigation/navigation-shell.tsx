@@ -1,6 +1,12 @@
 "use client";
 
-import { Suspense, useEffect, useState, type ReactNode } from "react";
+import {
+  Suspense,
+  useEffect,
+  useLayoutEffect,
+  useState,
+  type ReactNode,
+} from "react";
 import { ConfigProvider, Drawer } from "antd";
 import Navbar from "./navbar";
 import Sidebar from "./sidebar";
@@ -11,6 +17,27 @@ export default function NavigationShell({ children }: { children: ReactNode }) {
   const [navigationVisible, setNavigationVisible] = useState(true);
   const [mobileNavigationOpen, setMobileNavigationOpen] = useState(false);
   const [mobileWatchlistRequest, setMobileWatchlistRequest] = useState(0);
+  const showNavigation = navigationVisible;
+
+  useLayoutEffect(() => {
+    const mediaQuery = window.matchMedia("(prefers-color-scheme: light)");
+    const savedTheme = window.localStorage.getItem("papertrade-theme");
+    const hasSavedTheme = savedTheme === "light" || savedTheme === "dark";
+    const applyTheme = (theme: "light" | "dark") => {
+      document.documentElement.dataset.theme = theme;
+    };
+
+    applyTheme(
+      hasSavedTheme ? savedTheme : mediaQuery.matches ? "light" : "dark",
+    );
+    if (hasSavedTheme) return;
+
+    const handleSystemThemeChange = (event: MediaQueryListEvent) => {
+      applyTheme(event.matches ? "light" : "dark");
+    };
+    mediaQuery.addEventListener("change", handleSystemThemeChange);
+    return () => mediaQuery.removeEventListener("change", handleSystemThemeChange);
+  }, []);
 
   useEffect(() => {
     const openMobileWatchlist = () => {
@@ -55,7 +82,7 @@ export default function NavigationShell({ children }: { children: ReactNode }) {
     >
       <NavigationVisibilityContext.Provider value={setNavigationVisible}>
         <div className="flex min-h-screen">
-          {navigationVisible && (
+          {showNavigation && (
             <div className="max-[760px]:hidden">
               <Suspense
                 fallback={
@@ -70,12 +97,12 @@ export default function NavigationShell({ children }: { children: ReactNode }) {
             </div>
           )}
           <div className="flex min-w-0 flex-1 flex-col">
-            {navigationVisible && (
+            {showNavigation && (
               <Navbar onOpenNavigation={() => setMobileNavigationOpen(true)} />
             )}
             {children}
           </div>
-          {navigationVisible && (
+          {showNavigation && (
             <Drawer
               placement="left"
               size="100%"

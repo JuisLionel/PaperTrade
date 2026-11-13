@@ -7,11 +7,13 @@ function SummaryCard({
   label,
   value,
   detail,
+  subdetail,
   tone,
 }: {
   label: string;
   value: string;
   detail: string;
+  subdetail?: string;
   tone?: string;
 }) {
   return (
@@ -23,6 +25,11 @@ function SummaryCard({
       <p className={`mt-2 truncate text-xs tabular-nums ${tone ?? "text-content-muted"}`}>
         {detail}
       </p>
+      {subdetail && (
+        <p className="truncate text-[11px] tabular-nums text-content-muted">
+          {subdetail}
+        </p>
+      )}
     </article>
   );
 }
@@ -70,12 +77,14 @@ export function DashboardSummary({
         label="Today’s P&L"
         value={signedUsd(summary.dayPnl)}
         detail={`${signedPct(summary.dayPct)} today`}
+        subdetail="Includes today’s trades"
         tone={toneText(summary.dayPnl)}
       />
       <SummaryCard
         label="Total return"
         value={signedUsd(summary.totalReturn)}
-        detail={`${signedPct(summary.totalReturnPct)} all time`}
+        detail={`${signedPct(summary.totalReturnPct)} since start`}
+        subdetail={`${signedUsd(summary.realizedPnl)} realized · ${signedUsd(summary.unrealizedPnl)} open`}
         tone={toneText(summary.totalReturn)}
       />
     </section>

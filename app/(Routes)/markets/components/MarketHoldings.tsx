@@ -97,8 +97,8 @@ export default function MarketHoldings({
       dataIndex: "symbol",
       align: "right",
       width: 120,
-      render: (symbol: string) => {
-        const price = quotes.get(symbol)?.c;
+      render: (symbol: string, position: Position) => {
+        const price = position.currentPrice ?? quotes.get(symbol)?.c;
         return (
           <span className="tabular-nums text-opposite">
             {price == null ? "—" : `$${fmt(price, digitsFor(price))}`}
@@ -127,17 +127,21 @@ export default function MarketHoldings({
       },
     },
     {
-      title: "Return",
+      title: "Unrealized P&L",
       dataIndex: "symbol",
       align: "right",
       width: 130,
       render: (symbol: string, position: Position) => {
-        const price = quotes.get(symbol)?.c;
+        const price = position.currentPrice ?? quotes.get(symbol)?.c;
         if (price == null || position.avgCost <= 0) {
           return <span className="text-content-muted">—</span>;
         }
-        const amount = (price - position.avgCost) * position.shares;
-        const pct = (price / position.avgCost - 1) * 100;
+        const amount =
+          position.unrealizedPnl ??
+          (price - position.avgCost) * position.shares;
+        const pct =
+          position.unrealizedPnlPct ??
+          (price / position.avgCost - 1) * 100;
         return (
           <div className={`leading-tight tabular-nums ${tone(amount)}`}>
             <div className="font-medium">{signed(pct, 2, "%")}</div>
@@ -152,9 +156,9 @@ export default function MarketHoldings({
       align: "right",
       width: 130,
       render: (symbol: string, position: Position) => {
-        const price = quotes.get(symbol)?.c;
+        const price = position.currentPrice ?? quotes.get(symbol)?.c;
         if (price == null) return <span className="text-content-muted">—</span>;
-        const value = position.shares * price;
+        const value = position.marketValue ?? position.shares * price;
         const weight =
           holdings.complete && holdings.value > 0
             ? (value / holdings.value) * 100
@@ -195,11 +199,11 @@ export default function MarketHoldings({
               <div className="mt-1 flex flex-wrap justify-start gap-x-4 gap-y-1 text-xs tabular-nums sm:justify-end">
                 <span className={tone(holdings.day)}>
                   {money(holdings.day)}{" "}
-                  <span className="text-content-muted">today</span>
+                  <span className="text-content-muted">open today</span>
                 </span>
                 <span className={tone(holdings.ret)}>
                   {money(holdings.ret)}{" "}
-                  <span className="text-content-muted">total return</span>
+                  <span className="text-content-muted">unrealized P&L</span>
                 </span>
               </div>
             )}
@@ -269,16 +273,20 @@ export default function MarketHoldings({
           <div className="space-y-2 md:hidden">
             {holdings.rows.map(({ position }) => {
               const quote = quotes.get(position.symbol);
-              const price = quote?.c;
-              const value = price == null ? null : position.shares * price;
+              const price = position.currentPrice ?? quote?.c;
+              const value =
+                position.marketValue ??
+                (price == null ? null : position.shares * price);
               const returnAmount =
-                price == null
+                position.unrealizedPnl ??
+                (price == null
                   ? null
-                  : (price - position.avgCost) * position.shares;
+                  : (price - position.avgCost) * position.shares);
               const returnPct =
-                price == null || position.avgCost <= 0
+                position.unrealizedPnlPct ??
+                (price == null || position.avgCost <= 0
                   ? null
-                  : (price / position.avgCost - 1) * 100;
+                  : (price / position.avgCost - 1) * 100);
               return (
                 <article
                   key={position.symbol}
@@ -316,7 +324,7 @@ export default function MarketHoldings({
                     >
                       {quote?.dp == null ? "—" : signed(quote.dp, 2, "%")}
                     </span>
-                    <span className="text-content-muted">Return</span>
+                    <span className="text-content-muted">Unrealized</span>
                     <span
                       className={
                         returnAmount == null

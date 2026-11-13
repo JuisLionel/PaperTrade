@@ -3,15 +3,47 @@ export type Interval = "1day" | "15min";
 export type OrderSide = "buy" | "sell";
 export type OrderStatus = "filled" | "pending" | "cancelled";
 
-export interface Position { symbol: string; name: string; shares: number; avgCost: number }
+export interface Position {
+  symbol: string;
+  name: string;
+  shares: number;
+  avgCost: number;
+  currentPrice?: number;
+  marketValue?: number;
+  unrealizedPnl?: number;
+  unrealizedPnlPct?: number;
+  intradayPnl?: number;
+}
 export interface WatchItem { symbol: string; name: string }
 export interface Order {
   id: string; symbol: string; side: OrderSide; type: "market" | "limit";
   qty: number; price: number; status: OrderStatus; createdAt: string;
+  brokerStatus?: string;
+  brokerType?: string;
+  filledQty?: number;
+  filledAveragePrice?: number;
+  limitPrice?: number;
+  cancelable?: boolean;
+  crypto?: boolean;
 }
 export interface Account {
   startingBalance: number; cash: number;
   positions: Position[]; orders: Order[]; watchlist: WatchItem[];
+  equity?: number;
+  lastEquity?: number;
+  buyingPower?: number;
+  dayPnl?: number;
+  dayPnlPct?: number;
+  totalReturn?: number;
+  totalReturnPct?: number;
+  status?: string;
+}
+
+export interface MarketClock {
+  isOpen: boolean;
+  nextOpen: string;
+  nextClose: string;
+  timestamp: string;
 }
 
 export interface Quote {

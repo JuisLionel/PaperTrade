@@ -18,8 +18,9 @@ import {
   type Quote,
 } from "@/lib/client/markets";
 import {
-  readPinnedAssets,
-  writePinnedAssets,
+  PINNED_ASSETS_CHANGED_EVENT,
+  savePinnedAssets,
+  syncPinnedAssets,
 } from "@/lib/client/watchlist-storage";
 import {
   CRYPTO_CATEGORIES,
@@ -30,7 +31,6 @@ import { MARKET_SECTORS as SECTORS } from "@/lib/market-sectors";
 const PAGE_SIZE = 10;
 const QUOTE_BATCH_SIZE = 5;
 const BATCH_DELAY_MS = 300;
-const MOVERS_SCAN_SIZE = 50;
 
 const displaySymbol = (symbol: string) =>
   symbol.includes(":") ? symbol.split(":")[1].replace("USDT", "") : symbol;
@@ -63,8 +63,6 @@ const tone = (value: number | null | undefined) =>
 const ALL_CATEGORY = "all";
 const PINNED_CATEGORY = "pinned";
 const SP500_CATEGORY = "sp500";
-const GAINERS_CATEGORY = "gainers";
-const LOSERS_CATEGORY = "losers";
 const CRYPTO_CATEGORY = "crypto";
 const ALL_CRYPTO = "all-crypto";
 
@@ -183,7 +181,6 @@ export default function WatchlistPanel({
   const [searchLoading, setSearchLoading] = useState(false);
   const [searchError, setSearchError] = useState<string | null>(null);
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
-  const [moversScanCount, setMoversScanCount] = useState(0);
   const [quotesLoading, setQuotesLoading] = useState(false);
   const [loadingSymbols, setLoadingSymbols] = useState(new Set<string>());
   const [quotesError, setQuotesError] = useState<string | null>(null);
@@ -205,20 +202,30 @@ export default function WatchlistPanel({
 
   useEffect(() => {
     let active = true;
-    void Promise.resolve().then(() => {
-      try {
-        const savedPins = readPinnedAssets();
-        writePinnedAssets(savedPins);
+    const handlePinsChanged = (event: Event) => {
+      setPinnedAssets((event as CustomEvent<Asset[]>).detail);
+    };
+    void syncPinnedAssets()
+      .then((savedPins) => {
+        if (active) setPinnedAssets(savedPins);
+      })
+      .catch((error: unknown) => {
+        console.error("Failed to sync Alpaca watchlist pins:", error);
         if (active) {
-          setPinnedAssets(savedPins);
+          setPinError(
+            error instanceof Error
+              ? error.message
+              : "Alpaca watchlist pins could not be loaded.",
+          );
         }
-      } catch (error) {
-        console.error("Failed to load saved watchlist pins:", error);
-        if (active) setPinError("Saved pins could not be loaded.");
-      }
-    });
+      });
+    window.addEventListener(PINNED_ASSETS_CHANGED_EVENT, handlePinsChanged);
     return () => {
       active = false;
+      window.removeEventListener(
+        PINNED_ASSETS_CHANGED_EVENT,
+        handlePinsChanged,
+      );
     };
   }, []);
 
@@ -255,9 +262,7 @@ export default function WatchlistPanel({
   useEffect(() => {
     if (
       !isOpen ||
-      (category !== SP500_CATEGORY &&
-        category !== GAINERS_CATEGORY &&
-        category !== LOSERS_CATEGORY) ||
+      category !== SP500_CATEGORY ||
       sp500Requested.current
     ) {
       return;
@@ -278,118 +283,6 @@ export default function WatchlistPanel({
         );
       });
   }, [isOpen, category]);
-
-  useEffect(() => {
-    if (
-      !isOpen ||
-      (category !== GAINERS_CATEGORY && category !== LOSERS_CATEGORY) ||
-      !sp500Assets.length ||
-      moversScanCount === 0 ||
-      rateLimitSeconds > 0
-    ) {
-      return;
-    }
-
-    const requestedQuotes = quotesRequested.current;
-    const scanSymbols = sp500Assets
-      .slice(0, moversScanCount)
-      .map((asset) => asset.symbol);
-    const wanted = scanSymbols.filter(
-      (symbol) => !requestedQuotes.has(symbol),
-    );
-    if (!wanted.length) return;
-
-    const controller = new AbortController();
-    const settled = new Set<string>();
-    let active = true;
-
-    const loadMoverQuotes = async () => {
-      setQuotesLoading(true);
-      setQuotesError(null);
-      setLoadingSymbols((current) => new Set([...current, ...wanted]));
-
-      try {
-        for (let index = 0; index < wanted.length; index += QUOTE_BATCH_SIZE) {
-          if (index > 0) {
-            await new Promise<void>((resolve) => {
-              setTimeout(resolve, BATCH_DELAY_MS);
-            });
-          }
-          if (controller.signal.aborted) return;
-
-          const batch = wanted.slice(index, index + QUOTE_BATCH_SIZE);
-          batch.forEach((symbol) => requestedQuotes.add(symbol));
-          const { quotes: data, status, retryAfter } = await getMarketQuotes(
-            batch,
-            [],
-            controller.signal,
-          );
-          const limited = data.filter((quote) => quote.rateLimited);
-
-          setQuotes((current) => {
-            const next = { ...current };
-            data.forEach((quote) => {
-              if (!quote.rateLimited) next[quote.symbol] = quote;
-            });
-            return next;
-          });
-          batch.forEach((symbol) => {
-            if (!limited.some((quote) => quote.symbol === symbol)) {
-              settled.add(symbol);
-            }
-          });
-          setLoadingSymbols((current) => {
-            const next = new Set(current);
-            batch.forEach((symbol) => next.delete(symbol));
-            return next;
-          });
-
-          if (limited.length || status === 429) {
-            limited.forEach((quote) =>
-              requestedQuotes.delete(quote.symbol),
-            );
-            setRateLimitSeconds(getRateLimitSeconds(retryAfter));
-            return;
-          }
-        }
-      } catch (error) {
-        if (controller.signal.aborted) return;
-        wanted
-          .filter((symbol) => !settled.has(symbol))
-          .forEach((symbol) => requestedQuotes.delete(symbol));
-        setQuotesError(
-          error instanceof Error ? error.message : "Could not load market quotes.",
-        );
-      } finally {
-        if (active) {
-          setQuotesLoading(false);
-          setLoadingSymbols((current) => {
-            const next = new Set(current);
-            wanted
-              .filter((symbol) => !settled.has(symbol))
-              .forEach((symbol) => next.delete(symbol));
-            return next;
-          });
-        }
-      }
-    };
-
-    void loadMoverQuotes();
-
-    return () => {
-      active = false;
-      controller.abort();
-      wanted
-        .filter((symbol) => !settled.has(symbol))
-        .forEach((symbol) => requestedQuotes.delete(symbol));
-    };
-  }, [
-    category,
-    isOpen,
-    moversScanCount,
-    rateLimitSeconds,
-    sp500Assets,
-  ]);
 
   useEffect(() => {
     if (
@@ -479,8 +372,6 @@ export default function WatchlistPanel({
         label: `Pinned${pinnedAssets.length ? ` (${pinnedAssets.length})` : ""}`,
       },
       { id: SP500_CATEGORY, label: "S&P 500" },
-      { id: GAINERS_CATEGORY, label: "Gainers" },
-      { id: LOSERS_CATEGORY, label: "Losers" },
       ...sectorTabs,
       { id: CRYPTO_CATEGORY, label: "Crypto" },
     ];
@@ -549,10 +440,6 @@ export default function WatchlistPanel({
     candidates.forEach((asset) => uniqueAssets.set(asset.symbol, asset));
 
     const sector = SECTORS.find((item) => item.id === category);
-    const changeOf = (asset: Asset) => {
-      const dp = quotes[asset.symbol]?.dp;
-      return isFiniteNumber(dp) ? dp : null;
-    };
 
     const result = [...uniqueAssets.values()]
       .filter((asset) => {
@@ -563,10 +450,6 @@ export default function WatchlistPanel({
             return pinnedSet.has(asset.symbol);
           case SP500_CATEGORY:
             return sp500Set.has(asset.symbol);
-          case GAINERS_CATEGORY:
-            return (changeOf(asset) ?? 0) > 0;
-          case LOSERS_CATEGORY:
-            return (changeOf(asset) ?? 0) < 0;
           case CRYPTO_CATEGORY:
             return (
               isCryptoAsset(asset) &&
@@ -584,12 +467,6 @@ export default function WatchlistPanel({
           asset.name.toLowerCase().includes(normalizedSearch),
       );
 
-    if (category === GAINERS_CATEGORY) {
-      return result.sort((a, b) => (changeOf(b) ?? 0) - (changeOf(a) ?? 0));
-    }
-    if (category === LOSERS_CATEGORY) {
-      return result.sort((a, b) => (changeOf(a) ?? 0) - (changeOf(b) ?? 0));
-    }
     return result.sort(
       (a, b) => Number(pinnedSet.has(b.symbol)) - Number(pinnedSet.has(a.symbol)),
     );
@@ -601,21 +478,22 @@ export default function WatchlistPanel({
     pinnedAssets,
     pinnedSet,
     query,
-    quotes,
     searchLoadedFor,
     searchResults,
     sp500Assets,
     sp500Set,
   ]);
 
-  const togglePinned = (asset: Asset) => {
-    const next = pinnedSet.has(asset.symbol)
-      ? pinnedAssets.filter((pinnedAsset) => pinnedAsset.symbol !== asset.symbol)
-      : [...pinnedAssets, asset];
-
+  const togglePinned = async (asset: Asset) => {
     try {
-      writePinnedAssets(next);
-      setPinnedAssets(next);
+      const current = await syncPinnedAssets(true);
+      const next = current.some(
+        (pinnedAsset) => pinnedAsset.symbol === asset.symbol,
+      )
+        ? current.filter((pinnedAsset) => pinnedAsset.symbol !== asset.symbol)
+        : [...current, asset];
+      const saved = await savePinnedAssets(next);
+      setPinnedAssets(saved);
       setPinError(null);
     } catch (error) {
       console.error("Failed to save watchlist pins:", error);
@@ -934,13 +812,7 @@ export default function WatchlistPanel({
                     onClick={(event) => {
                       setCategory(tab.id);
                       setCryptoCategory(ALL_CRYPTO);
-                      const isMoverTab =
-                        tab.id === GAINERS_CATEGORY ||
-                        tab.id === LOSERS_CATEGORY;
-                      setVisibleCount(
-                        isMoverTab ? MOVERS_SCAN_SIZE : PAGE_SIZE,
-                      );
-                      if (isMoverTab) setMoversScanCount(MOVERS_SCAN_SIZE);
+                      setVisibleCount(PAGE_SIZE);
                       if (tab.id === CRYPTO_CATEGORY && cryptoAssets.length) {
                         setSelectedSymbol(cryptoAssets[0].symbol);
                         setSelectedAsset(cryptoAssets[0]);
@@ -1137,30 +1009,18 @@ export default function WatchlistPanel({
               </div>
             )}
 
-            {(visibleCount < filteredAssets.length ||
-              ((category === GAINERS_CATEGORY ||
-                category === LOSERS_CATEGORY) &&
-                moversScanCount < sp500Assets.length)) && (
+            {visibleCount < filteredAssets.length && (
               <button
                 type="button"
                 disabled={quotesLoading}
                 onClick={() => {
-                  if (visibleCount < filteredAssets.length) {
-                    setVisibleCount((count) => count + PAGE_SIZE);
-                    return;
-                  }
-                  setMoversScanCount((count) =>
-                    Math.min(count + MOVERS_SCAN_SIZE, sp500Assets.length),
-                  );
-                  setVisibleCount((count) => count + MOVERS_SCAN_SIZE);
+                  setVisibleCount((count) => count + PAGE_SIZE);
                 }}
                 className="btn btn-ghost btn-sm btn-block rounded-none text-xs font-normal text-content-secondary"
               >
-                {visibleCount < filteredAssets.length
-                  ? `Show more (${(
-                      filteredAssets.length - visibleCount
-                    ).toLocaleString()} remaining)`
-                  : "Load more market movers"}
+                {`Show more (${(
+                  filteredAssets.length - visibleCount
+                ).toLocaleString()} remaining)`}
               </button>
             )}
 

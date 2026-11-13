@@ -20,7 +20,7 @@ export const categories = [
 ] as const;
 
 export type Category = (typeof categories)[number];
-export type Filter = "All" | "Pinned" | "S&P 500" | "Gainers" | "Losers" | Category;
+export type Filter = "All" | "Pinned" | "S&P 500" | Category;
 export type Range = "1D" | "5D" | "1M";
 export type IndexKey = "sp500" | "nasdaq" | "dow" | "russell";
 export type MarketRow = {
@@ -44,8 +44,6 @@ export const filters: Filter[] = [
   "All",
   "Pinned",
   "S&P 500",
-  "Gainers",
-  "Losers",
   ...categories,
 ];
 export const ranges: Range[] = ["1D", "5D", "1M"];
@@ -89,10 +87,6 @@ export function filterAssets(
       break;
     case "S&P 500":
       rows = sp500Assets;
-      break;
-    case "Gainers":
-    case "Losers":
-      rows = sp500Assets.slice(0, 50);
       break;
     case "Crypto":
       rows = allAssets.filter(isCrypto);
@@ -166,16 +160,19 @@ export function calculateHoldings(
   let value = 0;
   let cost = 0;
   let day = 0;
+  let ret = 0;
   let priced = 0;
 
   const rows = positions.map((position) => {
     const quote = quotes.get(position.symbol);
-    const price = quote?.c ?? null;
-    const rowValue = price === null ? null : position.shares * price;
+    const price = position.currentPrice ?? quote?.c ?? null;
+    const rowValue =
+      position.marketValue ?? (price === null ? null : position.shares * price);
     cost += position.shares * position.avgCost;
     if (rowValue !== null) {
       value += rowValue;
-      day += position.shares * (quote?.d ?? 0);
+      day += position.intradayPnl ?? position.shares * (quote?.d ?? 0);
+      ret += position.unrealizedPnl ?? rowValue - position.shares * position.avgCost;
       priced += 1;
     }
     return { position, value: rowValue };
@@ -188,7 +185,7 @@ export function calculateHoldings(
     value,
     day,
     cost,
-    ret: value - cost,
+    ret,
     complete: positions.length > 0 && priced === positions.length,
   };
 }

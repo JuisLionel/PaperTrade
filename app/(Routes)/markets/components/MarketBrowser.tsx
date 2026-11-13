@@ -1,11 +1,15 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { ConfigProvider, Pagination, Table } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import { BsFillPinAngleFill, BsPinAngle } from "react-icons/bs";
+import { ArrowDown, ArrowUp } from "lucide-react";
 import Sparkline from "@/app/(Routes)/markets/components/Sparkline";
 import { Tabs } from "@/app/componets/ui/Tabs";
 import { digitsFor, fmt, signed, tone } from "@/lib/format";
+import { submitAlpacaOrder } from "@/lib/api/alpaca";
+import type { Account, Order, OrderSide } from "@/types/trading";
 import {
   cryptoSubs,
   filters,
@@ -13,6 +17,7 @@ import {
   type Filter,
   type MarketRow,
 } from "../market-types";
+import MarketOrderTicket from "./MarketOrderTicket";
 
 type MarketBrowserProps = {
   data: MarketRow[];
@@ -28,6 +33,8 @@ type MarketBrowserProps = {
   onFilterChange: (filter: Filter) => void;
   onPageChange: (page: number) => void;
   onTogglePin: (row: MarketRow) => void;
+  account: Account | null;
+  onAccountRefresh: () => Promise<void>;
 };
 
 const tableTheme = {
@@ -53,6 +60,11 @@ const tableTheme = {
   },
 };
 
+function paperSymbol(symbol: string) {
+  if (!symbol.includes(":")) return symbol;
+  return `${symbol.split(":")[1].replace(/USDT$/, "")}USD`;
+}
+
 export default function MarketBrowser({
   data,
   filter,
@@ -67,9 +79,156 @@ export default function MarketBrowser({
   onFilterChange,
   onPageChange,
   onTogglePin,
+  account,
+  onAccountRefresh,
 }: MarketBrowserProps) {
+  const [ticket, setTicket] = useState<{
+    side: OrderSide;
+    symbol: string;
+    name: string;
+    price: number;
+    changePct: number | null;
+    buyingPower: number;
+    cash: number;
+    shares: number;
+    fractional: boolean;
+    crypto: boolean;
+  } | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
   const pageCount = Math.max(1, Math.ceil(data.length / PAGE_SIZE));
   const mobileRows = data.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+  useEffect(() => {
+    if (!notice) return;
+    const timer = window.setTimeout(() => setNotice(null), 3600);
+    return () => window.clearTimeout(timer);
+  }, [notice]);
+
+  function openTicket(row: MarketRow, side: OrderSide) {
+    if (
+      row.price === null ||
+      !Number.isFinite(row.price) ||
+      row.price <= 0 ||
+      !account
+    ) {
+      return;
+    }
+    const symbol = paperSymbol(row.symbol);
+    const shares =
+      (account.positions.find((position) => position.symbol === symbol)?.shares ??
+        0) -
+      account.orders
+        .filter(
+          (order) =>
+            order.cancelable &&
+            order.side === "sell" &&
+            order.symbol === symbol,
+        )
+        .reduce(
+          (sum, order) =>
+            sum + Math.max(0, order.qty - (order.filledQty ?? 0)),
+          0,
+        );
+    const buyingPower = account.buyingPower ??
+      account.cash -
+      account.orders
+        .filter(
+          (order) =>
+            order.cancelable &&
+            order.side === "buy",
+        )
+        .reduce(
+          (sum, order) =>
+            sum +
+            Math.max(0, order.qty - (order.filledQty ?? 0)) *
+            (order.limitPrice ?? order.price),
+          0,
+        );
+    const crypto =
+      row.kind.toLowerCase().includes("crypto") || row.symbol.includes(":");
+    setTicket({
+      side,
+      symbol,
+      name: row.name,
+      price: row.price,
+      changePct: row.changePct,
+      buyingPower,
+      cash: account.cash,
+      shares,
+      fractional: crypto,
+      crypto,
+    });
+  }
+
+  async function placeOrder(
+    side: OrderSide,
+    type: Order["type"],
+    quantity: number,
+    orderPrice: number,
+  ): Promise<void> {
+    if (!account || !ticket) throw new Error("Your Alpaca paper account is still loading.");
+    await submitAlpacaOrder({
+      clientOrderId: window.crypto.randomUUID(),
+      symbol: ticket.symbol,
+      side,
+      type,
+      qty: quantity,
+      price: orderPrice,
+      crypto: ticket.crypto,
+    });
+    setTicket(null);
+    setNotice(`${side === "buy" ? "Buy" : "Sell"} ${type} order submitted to Alpaca paper trading for ${ticket.symbol}.`);
+    await onAccountRefresh();
+  }
+
+  const orderButtons = (row: MarketRow, compact = false) => {
+    const symbol = paperSymbol(row.symbol);
+    const hasPrice =
+      row.price !== null && Number.isFinite(row.price) && row.price > 0;
+    const shares =
+      account?.positions.find((position) => position.symbol === symbol)?.shares ??
+      0;
+    const availableShares =
+      shares -
+      (account?.orders
+        .filter(
+          (order) =>
+            order.cancelable &&
+            order.side === "sell" &&
+            order.symbol === symbol,
+        )
+        .reduce(
+          (sum, order) =>
+            sum + Math.max(0, order.qty - (order.filledQty ?? 0)),
+          0,
+        ) ?? 0);
+    const buyingPower = account?.buyingPower ?? account?.cash ?? 0;
+    const buttonClass = compact
+      ? "btn btn-xs min-h-7 border-0 px-3"
+      : "btn btn-xs min-h-7 border-0 px-2";
+    return (
+      <div className="flex items-center justify-end gap-1">
+        <button
+          type="button"
+          disabled={!account || buyingPower <= 0 || !hasPrice}
+          aria-label={`Buy ${row.symbol}`}
+          onClick={() => openTicket(row, "buy")}
+          className={`${buttonClass} bg-success/10 text-success hover:bg-success/20`}
+        >
+          <ArrowUp size={12} /> Buy
+        </button>
+        <button
+          type="button"
+          disabled={!account || !hasPrice || availableShares <= 0}
+          aria-label={`Sell ${row.symbol}`}
+          onClick={() => openTicket(row, "sell")}
+          className={`${buttonClass} bg-danger/10 text-danger hover:bg-danger/20`}
+        >
+          <ArrowDown size={12} /> Sell
+        </button>
+      </div>
+    );
+  };
+
   const columns: ColumnsType<MarketRow> = [
     {
       title: "Symbol",
@@ -111,6 +270,24 @@ export default function MarketBrowser({
       },
     },
     {
+      title: "Last 7 days",
+      dataIndex: "spark",
+      width: "26%",
+      responsive: ["md"],
+      render: (_, row) =>
+        row.spark.length > 1 ? (
+          <div className="pl-10 pr-4">
+            <Sparkline
+              data={row.spark}
+              positive={(row.change ?? 0) >= 0}
+              fluid
+            />
+          </div>
+        ) : (
+          <span className="text-content-muted">—</span>
+        ),
+    },
+    {
       title: "Price",
       dataIndex: "price",
       align: "right",
@@ -142,33 +319,11 @@ export default function MarketBrowser({
         ),
     },
     {
-      title: "Last 7 days",
-      dataIndex: "spark",
-      width: "26%",
-      responsive: ["md"],
-      render: (_, row) =>
-        row.spark.length > 1 ? (
-          <div className="pl-10 pr-4">
-            <Sparkline
-              data={row.spark}
-              positive={(row.change ?? 0) >= 0}
-              fluid
-            />
-          </div>
-        ) : (
-          <span className="text-content-muted">—</span>
-        ),
-    },
-    {
       title: "",
       key: "action",
       align: "right",
-      width: 96,
-      render: () => (
-        <button className="btn btn-sm rounded-sm border-0 bg-content text-base opacity-0 group-focus-within:opacity-100 group-hover:opacity-100 pointer-coarse:opacity-100">
-          Trade
-        </button>
-      ),
+      width: 132,
+      render: (_, row) => orderButtons(row),
     },
   ];
 
@@ -252,17 +407,19 @@ export default function MarketBrowser({
                           : `$${fmt(row.price, digitsFor(row.price))}`}
                       </p>
                       <p
-                        className={`text-xs tabular-nums ${
-                          row.changePct === null
+                        className={`text-xs tabular-nums ${row.changePct === null
                             ? "text-content-muted"
                             : tone(row.changePct)
-                        }`}
+                          }`}
                       >
                         {row.changePct === null
                           ? "—"
                           : signed(row.changePct, 2, "%")}
                       </p>
                     </div>
+                  </div>
+                  <div className="mt-3">
+                    {orderButtons(row, true)}
                   </div>
                 </article>
               );
@@ -278,9 +435,7 @@ export default function MarketBrowser({
                     ? `No match for "${query}". Try a ticker like AAPL.`
                     : filter === "Pinned"
                       ? "Nothing pinned yet. Click the pin on any row to pin it."
-                      : filter === "Gainers" || filter === "Losers"
-                        ? "No S&P 500 movers are available yet."
-                        : "No symbols match this filter."}
+                      : "No symbols match this filter."}
             </div>
           )}
           {pageCount > 1 && (
@@ -318,13 +473,34 @@ export default function MarketBrowser({
                     ? `No match for "${query}". Try a ticker like AAPL.`
                     : filter === "Pinned"
                       ? "Nothing pinned yet. Click the pin on any row to pin it."
-                      : filter === "Gainers" || filter === "Losers"
-                        ? "No S&P 500 movers are available yet."
-                        : "No symbols match this filter.",
+                      : "No symbols match this filter.",
             }}
           />
         </>
       </ConfigProvider>
+      {notice && (
+        <div
+          role="status"
+          className="fixed bottom-5 left-1/2 z-40 -translate-x-1/2 rounded-lg border border-border bg-surface px-4 py-3 text-sm text-content shadow-xl"
+        >
+          {notice}
+        </div>
+      )}
+      {ticket && (
+        <MarketOrderTicket
+          side={ticket.side}
+          symbol={ticket.symbol}
+          name={ticket.name}
+          price={ticket.price}
+          changePct={ticket.changePct}
+          buyingPower={ticket.buyingPower}
+          cash={ticket.cash}
+          shares={ticket.shares}
+          fractional={ticket.fractional}
+          onClose={() => setTicket(null)}
+          onSubmit={placeOrder}
+        />
+      )}
     </section>
   );
 }
